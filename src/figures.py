@@ -138,13 +138,17 @@ def _plot_axis(
             line_xs = [grid_lookup[v] for v in line_pts[axis_field]]
             ax.plot(line_xs, line_pts["eval_loss"].values, color=color, linewidth=1, alpha=0.6, zorder=2)
 
+        # Marker size shared across roles so circles / squares / diamonds read as
+        # equally weighted; only the shape encodes role.
+        marker_size = 60
+
         # Sweep points: circles, raw individual runs.
         sweep = scale[scale["role"] == axis_role]
         if not sweep.empty:
             sweep_xs = [grid_lookup[v] for v in sweep[axis_field]]
             ax.scatter(
                 sweep_xs, sweep["eval_loss"].values,
-                s=42, color=color, marker="o", edgecolors="k", linewidths=0.4, zorder=3,
+                s=marker_size, color=color, marker="o", edgecolors="k", linewidths=0.4, zorder=3,
             )
 
         # Positive control: square, sits at the grid center value (same for every scale).
@@ -153,7 +157,7 @@ def _plot_axis(
             pos_xs = [grid_lookup[v] for v in pos[axis_field]]
             ax.scatter(
                 pos_xs, pos["eval_loss"].values,
-                s=70, color=color, marker="s", edgecolors="k", linewidths=0.6, zorder=4,
+                s=marker_size, color=color, marker="s", edgecolors="k", linewidths=0.6, zorder=4,
             )
 
         # Negative control (1B only): diamond at the (interpolated) untransferred value.
@@ -163,7 +167,7 @@ def _plot_axis(
                 x = _interpolate_x(float(row[axis_field]), grid_values, grid_xs, log_scale)
                 ax.scatter(
                     [x], [row["eval_loss"]],
-                    s=80, color=color, marker="D", edgecolors="k", linewidths=0.6, zorder=4,
+                    s=marker_size, color=color, marker="D", edgecolors="k", linewidths=0.6, zorder=4,
                 )
 
     ax.set_xticks(grid_xs)
@@ -176,7 +180,7 @@ def _plot_axis(
 def _shape_legend_handles():
     """Proxy artists for the marker-shape legend (no axes side-effects)."""
     common = dict(color="w", markerfacecolor="lightgray", markeredgecolor="k", markeredgewidth=0.6, linestyle="")
-    sweep = Line2D([0], [0], marker="o", markersize=7, **common)
+    sweep = Line2D([0], [0], marker="o", markersize=8, **common)
     optimal = Line2D([0], [0], marker="s", markersize=8, **common)
     reference = Line2D([0], [0], marker="D", markersize=8, **common)
     return [sweep, optimal, reference], ["sweep", "optimal (predicted)", "control (reference)"]
@@ -256,7 +260,8 @@ def _save(fig, name: str) -> None:
 
 
 def figure1_lr(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
-    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
+    # Single-panel figure narrower than the multi-panel default to avoid stretching.
+    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH * 0.8, FIGURE_HEIGHT))
     _plot_axis(
         ax, df,
         axis_role="learning_rate",
@@ -486,7 +491,51 @@ def _fit_kaplan_law(params: np.ndarray, losses: np.ndarray) -> tuple[float, floa
                 f"(lo={lo}, hi={hi}, margin={margin:.3g})"
             )
 
-    return float(popt[0]), float(popt[1]), float(popt[2])
+    A_fit, alpha_fit, L_inf_fit = float(popt[0]), float(popt[1]), float(popt[2])
+    _write_kaplan_fit_report(params, losses, A_fit, alpha_fit, L_inf_fit, pcov, lower, upper, names)
+    return A_fit, alpha_fit, L_inf_fit
+
+
+KAPLAN_FIT_REPORT_PATH = FIGURES_DIR / "figure3_loss_scaling.txt"
+
+
+def _write_kaplan_fit_report(
+    params: np.ndarray,
+    losses: np.ndarray,
+    A: float,
+    alpha: float,
+    L_inf: float,
+    pcov: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    names: tuple[str, ...],
+) -> None:
+    """Write Kaplan fit parameters, bounds, std-errs, and residual stats to a report file."""
+    pred = A * params ** (-alpha) + L_inf
+    resid = losses - pred
+    rmse = float(np.sqrt(np.mean(resid**2)))
+    max_abs = float(np.max(np.abs(resid)))
+    perr = np.sqrt(np.diag(pcov))
+    values = (A, alpha, L_inf)
+
+    lines = [
+        "Kaplan scaling-law fit",
+        "======================",
+        "",
+        "L(N) = A · N^(-α) + L_∞",
+        "",
+        f"data points : {len(params)}",
+        f"RMSE        : {rmse:.4g}",
+        f"max |resid| : {max_abs:.4g}",
+        "",
+        f"{'param':<6} {'value':>14} {'± std err':>14}    bounds",
+    ]
+    for name, val, err, lo, hi in zip(names, values, perr, lower, upper, strict=True):
+        hi_str = "∞" if not np.isfinite(hi) else f"{hi:.4g}"
+        lines.append(f"{name:<6} {val:>14.6g} {err:>14.3g}    [{lo:.4g}, {hi_str}]")
+
+    KAPLAN_FIT_REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    KAPLAN_FIT_REPORT_PATH.write_text("\n".join(lines) + "\n")
 
 
 def figure3_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
