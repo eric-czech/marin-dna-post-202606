@@ -312,36 +312,51 @@ VEP_PANELS: tuple[tuple[str, str, int], ...] = (
 _MARKER_AREA = 110.0
 
 
-def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
-    """Single panel, line+scatter: model params (log-x) vs AUPRC, one series per variant type."""
-    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
-    cmap = plt.get_cmap("tab10")
-    handles: list = []
-    labels: list[str] = []
-    for i, (subset, label, _n) in enumerate(VEP_PANELS):
-        col = f"lm_eval/traitgym_mendelian_v2_255/{subset}/auprc"
-        valid = results.dropna(subset=["params", col]).sort_values("params")
-        line, = ax.plot(
-            valid["params"], valid[col],
-            marker="o", linestyle="-", color=cmap(i),
-            linewidth=1.3, markersize=6, markeredgecolor="k", markeredgewidth=0.4,
-            zorder=3,
-        )
-        handles.append(line)
-        labels.append(label)
-    ax.set_xscale("log")
-    ax.set_xlabel("model params", labelpad=_X_LABEL_PAD)
-    ax.set_ylabel("AUPRC")
-    ax.grid(True, which="both", alpha=0.25, linewidth=0.5)
-    ax.set_title("Parameter scaling — params vs VEP AUPRC by variant type")
-    fig.tight_layout(rect=(0, 0.08, 1, 1))
+# 1x3 task-group panels for Figure 4. Each tuple is (panel title, list of subset keys).
+# Subset order within each panel determines tab10 color slot (matched to VEP_PANELS).
+FIGURE4_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("upstream", ("tss_proximal", "5_prime_UTR_variant")),
+    ("CDS", ("missense_variant", "synonymous_variant")),
+    ("other", ("3_prime_UTR_variant", "splicing")),
+)
 
-    fig.legend(
-        handles, labels,
-        ncol=len(handles), title="variant type",
-        loc="upper center", bbox_to_anchor=(0.5, _LEGEND_Y),
-        **_LEGEND_KW,
-    )
+
+def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
+    """1x3 line+scatter panels by task group: params (log-x) vs AUPRC.
+
+    Each variant type's color matches its slot in VEP_PANELS so the visual mapping
+    is consistent across this figure and Figure 5; per-panel legends list only the
+    variants drawn there.
+    """
+    cmap = plt.get_cmap("tab10")
+    color_for_subset = {subset: cmap(i) for i, (subset, _label, _n) in enumerate(VEP_PANELS)}
+    label_for_subset = {subset: label for subset, label, _n in VEP_PANELS}
+
+    fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, 4.2))
+    for ax, (group_title, subsets) in zip(axes, FIGURE4_GROUPS, strict=True):
+        handles: list = []
+        labels: list[str] = []
+        for subset in subsets:
+            col = f"lm_eval/traitgym_mendelian_v2_255/{subset}/auprc"
+            valid = results.dropna(subset=["params", col]).sort_values("params")
+            line, = ax.plot(
+                valid["params"], valid[col],
+                marker="o", linestyle="-", color=color_for_subset[subset],
+                linewidth=1.3, markersize=6, markeredgecolor="k", markeredgewidth=0.4,
+                zorder=3,
+            )
+            handles.append(line)
+            labels.append(label_for_subset[subset])
+        ax.set_xscale("log")
+        ax.set_title(group_title, fontsize=10)
+        ax.grid(True, which="both", alpha=0.25, linewidth=0.5)
+        ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=True, handletextpad=0.4)
+    axes[0].set_ylabel("AUPRC")
+    # x-label only on the middle panel.
+    axes[1].set_xlabel("model params", labelpad=_X_LABEL_PAD)
+
+    fig.suptitle("Parameter scaling — params vs VEP AUPRC by variant type", fontsize=11, y=0.97)
+    fig.tight_layout(rect=(0, 0.02, 1, 0.99))
     _save(fig, "figure4_params_vs_vep_auprc")
 
 
@@ -376,9 +391,9 @@ def figure5_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
         ax.set_title(f"{title} (n={n:,})", fontsize=10)
         ax.grid(True, alpha=0.25, linewidth=0.5)
 
-    # Shared axis labels: "loss" on the bottom row only, "AUPRC" on the leftmost column only.
-    for ax in axes[-1, :]:
-        ax.set_xlabel("loss", labelpad=_X_LABEL_PAD)
+    # Shared axis labels: "loss" only on the middle column of the bottom row;
+    # "AUPRC" on the leftmost column only.
+    axes[-1, 1].set_xlabel("loss", labelpad=_X_LABEL_PAD)
     for ax in axes[:, 0]:
         ax.set_ylabel("AUPRC")
 

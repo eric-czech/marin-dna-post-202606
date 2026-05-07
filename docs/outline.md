@@ -4,15 +4,25 @@
 - Transfer is one way to accomplish this; Hyperball and Complete(d) make this possible
 - WIP
 
+## TODO
+
+- Compare predicted hypers at 1e23 scale to text models at that scale
+- Create a table containing best hypers by FLOP and token count as a guideline for others 
+    - Start with this to make it clear that transfer is a function of tokens
+- Sweep stats: FLOPS and wall clock time
+    - Use figure 4 of https://arxiv.org/pdf/2305.16264 w/ 4.2B param 85B token training (very similar to scale here) as reference point on how large these experiments are
+
 ## Stats
 
-- Dataset 
-  - Sequence length: 256
-  - 3 genomic regions: cds, upstream, downstream
-  - Spans 
-  - Seq len, examples, species, tokens by region (cds, upstream, downstream) and total
-- Sweeps
-  - FLOPS and wall clock time
+### Training data
+
+- Spans 3 genomic regions: cds, upstream, downstream
+- Context length is 255 bp (+BOS token for 256 total)
+- Training: [CDS](https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v5_255_128) (242,334,716) | [Upstream](https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v1_255_128) (68,286,166) | [Downstream](https://huggingface.co/datasets/bolinas-dna/genomes-v5-genome_set-animals-intervals-v15_255_128) (20,501,856) = 331,122,738 total (~84.8B tokens) ([counts](https://gist.github.com/eric-czech/656b63dc78ac7792f5c5d824e0b5f103))
+- Validation (16,384 each): [CDS](https://huggingface.co/datasets/bolinas-dna/genomes-v5-validation-intervals-v5_255_255) | [Upstream](https://huggingface.co/datasets/bolinas-dna/genomes-v5-validation-intervals-v1_255_255) | [Downstream](https://huggingface.co/datasets/bolinas-dna/genomes-v5-validation-intervals-v15_255_255)
+- All have 366,411 unique RefSeq accessions spanning 500 distinct species
+  - Mostly birds, with a long tail of fish, reptiles, mammals, arthropods, etc.
+  - All accessions mapped cleanly in NCBI accession2taxid file with ~6K newest accessions filled in via Entrez esummary
 
 ### Eval (VEP) sample count by variant type
 
@@ -39,21 +49,6 @@
 └────────────────────────────────────┴────────┴─────────────────────┴────────┘
 
 
-<details><summary>species</summary>
-
-```
-# CDS (bolinas-dna/genomes-v5-genome_set-animals-intervals-v5_255_128)
-The dataset contains 366,411 unique RefSeq accessions (the id field is <accession>:start-end_strand). Mapped via NCBI's nucl_gb + nucl_wgs accession2taxid files (with the ~6K newest accessions filled in via Entrez esummary), then resolved each
- taxid to its species-rank ancestor in NCBI taxonomy. All 366,411 accessions resolved cleanly to a species, yielding 500 distinct species (mostly birds, with a long tail of fish, reptiles, mammals, arthropods, etc.).
-
-Outputs in /Users/eczech/tmp/bolinas_species_count/:
-- accessions.txt — 366,411 unique accessions
-- acc_taxid_raw.tsv — accession → taxid
-- species.tsv — 500 species sorted by accession count (top: Phaethon lepturus 11,320; tail: Liolophura japonica 1)
-```
-
-</details>
-
 ## Figures
 
 ### Transfer Validation
@@ -72,6 +67,12 @@ Outputs in /Users/eczech/tmp/bolinas_species_count/:
   - Group and color by model param count (line plot only)
 - Figure 4: Params vs. VEP AUPRC
   - Include missense, tss_proximal, 5_prime_UTR_variant, 3_prime_UTR_variant, splicing, synonymous metrics
+  - Use 1x3 subplots with metrics in task groups:
+    - Upstream: tss_proximal, 5_prime_UTR_variant
+    - CDS: missense, synonymous
+    - Other: 3_prime_UTR_variant, splicing
+  - Use "promoter" as display name for "tss_proximal"
+  - Use unique legend per facet in upper left containing only relevant metrics
   - Group and color by variant type (line+scatter plot)
 - Figure 5: Loss vs. VEP AUPRC
   - Include same variant types as figure 4
