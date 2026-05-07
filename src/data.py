@@ -1,0 +1,296 @@
+"""Fetch wandb data for the Bolinas DNA transfer-validation and parameter-scaling sweeps.
+
+Writes two CSVs under `data/`:
+  - data/transfer_validation_results.csv  (v0.14 + v0.15)
+  - data/parameter_scaling_results.csv    (v0.5, exactly 8 models)
+
+Each row corresponds to one wandb run. Hparams come from `run.config`; `params` and
+`tokens` come from the run's tag list (`params=...`, `tokens=...`); `eval/loss` and
+the lm_eval AUPRC metrics come from `run.summary` (final logged value).
+
+TODO: Once both sweeps are stable, add a filter on `state == "finished"` so partial
+runs don't appear in the output. For now we include every matching run and tolerate
+missing summary values (NaN) so in-flight runs are still represented.
+
+Usage:
+    uv run src/data.py
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import wandb
+
+WANDB_PROJECT = "eric-czech/marin"
+
+TRANSFER_VERSIONS = ("v0.14", "v0.15")
+SCALING_VERSION = "v0.5"
+SCALING_EXPECTED_MODELS = 8
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data"
+
+# lm_eval keys logged flat (slash-separated) in run.summary.
+LM_EVAL_KEYS: tuple[str, ...] = (
+    "lm_eval/traitgym_mendelian_v2_255/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/3_prime_UTR_variant/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/5_prime_UTR_variant/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/distal/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/missense_variant/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/non_coding_transcript_exon_variant/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/splicing/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/synonymous_variant/auprc",
+    "lm_eval/traitgym_mendelian_v2_255/tss_proximal/auprc",
+)
+
+TRANSFER_AXES = ("learning_rate", "beta2", "epsilon")
+TRANSFER_CONTROL_ROLES = ("positive-control", "negative-control")
+
+# Hparam columns and the candidate paths to look them up at in the flattened
+# run.config. Levanter logs nested dataclasses with dot-separated keys; we try
+# each candidate in order and fail loudly if none match.
+HPARAM_LOOKUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("hidden_size", ("model.hidden_dim",)),
+    ("batch_size", ("trainer.train_batch_size",)),
+    ("num_train_steps", ("trainer.num_train_steps",)),
+    ("train_seq_len", ("train_seq_len",)),
+    ("learning_rate", ("optimizer.learning_rate",)),
+    ("adam_lr", ("optimizer.adam_lr",)),
+    ("beta1", ("optimizer.beta1",)),
+    ("beta2", ("optimizer.beta2",)),
+    ("epsilon", ("optimizer.epsilon",)),
+    ("max_grad_norm", ("optimizer.max_grad_norm",)),
+    ("z_loss_weight", ("z_loss_weight",)),
+    ("initializer_range", ("model.initializer_range",)),
+)
+
+
+def _flatten(d: dict, prefix: str = "") -> dict:
+    """Flatten nested dicts with dot-separated keys."""
+    out: dict = {}
+    for k, v in d.items():
+        full = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            out.update(_flatten(v, full))
+        else:
+            out[full] = v
+    return out
+
+
+def _lookup(flat: dict, candidates: tuple[str, ...], run_name: str):
+    for c in candidates:
+        if c in flat:
+            return flat[c]
+    raise KeyError(
+        f"run {run_name!r}: none of {candidates} found in flattened config "
+        f"(sample keys: {sorted(flat)[:30]!r})"
+    )
+
+
+def _tag_int(tags: list[str], key: str, run_name: str) -> int:
+    prefix = f"{key}="
+    matches = [t[len(prefix):] for t in tags if t.startswith(prefix)]
+    if not matches:
+        raise KeyError(f"run {run_name!r}: tag {prefix}... not found in {tags}")
+    if len(matches) > 1:
+        raise ValueError(f"run {run_name!r}: multiple {prefix}... tags: {matches}")
+    return int(matches[0])
+
+
+def _summary_float(summary, key: str) -> float:
+    v = summary.get(key)
+    if v is None:
+        return float("nan")
+    f = float(v)
+    return f if np.isfinite(f) else float("nan")
+
+
+# Levanter logs cumulative compute as `throughput/total_gflops`. We expose it as
+# `tflops` (rounded int) — keeps the column compact and avoids float overflow.
+THROUGHPUT_GFLOPS_KEY = "throughput/total_gflops"
+
+
+def _tflops_from_gflops(v):
+    """Convert a `throughput/total_gflops` value to TFLOPs (rounded int).
+
+    Returns pd.NA when missing/non-finite — runs that crashed before logging a
+    single step (state=failed, _step=None) have no throughput recorded.
+    """
+    if v is None:
+        return pd.NA
+    f = float(v)
+    if not np.isfinite(f):
+        return pd.NA
+    return int(round(f / 1000.0))
+
+
+def _parse_transfer_role(run_name: str) -> str:
+    for role in TRANSFER_CONTROL_ROLES:
+        if run_name.endswith(f"-{role}"):
+            return role
+    for axis in TRANSFER_AXES:
+        if re.search(rf"-{re.escape(axis)}-\d+$", run_name):
+            return axis
+    raise ValueError(f"could not parse transfer role from run name: {run_name!r}")
+
+
+def _base_row(run, version: str) -> dict:
+    flat = _flatten(dict(run.config))
+    row = {
+        "run_name": run.name,
+        "version": version,
+        "state": run.state,
+        "params": _tag_int(run.tags, "params", run.name),
+        "tokens": _tag_int(run.tags, "tokens", run.name),
+    }
+    for col, candidates in HPARAM_LOOKUPS:
+        row[col] = _lookup(flat, candidates, run.name)
+    # Fraction of training completed: latest logged step / configured total steps.
+    last_step = run.summary.get("_step")
+    total_steps = row["num_train_steps"]
+    row["run_progress"] = float(last_step) / total_steps if last_step is not None and total_steps else float("nan")
+    row["tflops"] = _tflops_from_gflops(run.summary.get(THROUGHPUT_GFLOPS_KEY))
+    row["eval_loss"] = _summary_float(run.summary, "eval/loss")
+    return row
+
+
+def _fetch_runs(api, name_prefix: str) -> list:
+    runs = list(
+        api.runs(
+            WANDB_PROJECT,
+            filters={"display_name": {"$regex": f"^{re.escape(name_prefix)}"}},
+        )
+    )
+    print(f"  found {len(runs)} runs matching {name_prefix!r}")
+    return runs
+
+
+def fetch_transfer_validation(api) -> pd.DataFrame:
+    print(f"Fetching transfer-validation runs from {WANDB_PROJECT} ...")
+    rows: list[dict] = []
+    for version in TRANSFER_VERSIONS:
+        # Match all version-prefixed runs, then drop checkpoint VEP eval runs
+        # (they share the prefix but aren't training runs).
+        prefix = f"dna-bolinas-transfer-{version}-"
+        for run in _fetch_runs(api, prefix):
+            if "checkpoint_vep_eval" in run.tags:
+                continue
+            row = _base_row(run, version)
+            row["role"] = _parse_transfer_role(run.name)
+            rows.append(row)
+    df = pd.DataFrame.from_records(rows)
+    df["tflops"] = df["tflops"].astype("Int64")
+    cols = [
+        "run_name", "version", "state", "run_progress", "role",
+        "hidden_size", "params", "tokens", "tflops",
+        "batch_size", "num_train_steps", "train_seq_len",
+        "learning_rate", "adam_lr", "beta1", "beta2", "epsilon",
+        "max_grad_norm", "z_loss_weight", "initializer_range",
+        "eval_loss",
+    ]
+    df = df[cols].sort_values(["version", "params", "run_name"]).reset_index(drop=True)
+    return df
+
+
+def fetch_parameter_scaling(api) -> pd.DataFrame:
+    print(f"Fetching parameter-scaling runs from {WANDB_PROJECT} ...")
+    prefix = f"dna-bolinas-scaling-{SCALING_VERSION}-"
+    runs = _fetch_runs(api, prefix)
+    rows: list[dict] = []
+    for run in runs:
+        row = _base_row(run, SCALING_VERSION)
+        for key in LM_EVAL_KEYS:
+            row[key] = _summary_float(run.summary, key)
+        rows.append(row)
+    df = pd.DataFrame.from_records(rows)
+    df["tflops"] = df["tflops"].astype("Int64")
+    cols = [
+        "run_name", "version", "state", "run_progress",
+        "hidden_size", "params", "tokens", "tflops",
+        "batch_size", "num_train_steps", "train_seq_len",
+        "learning_rate", "adam_lr", "beta1", "beta2", "epsilon",
+        "max_grad_norm", "z_loss_weight", "initializer_range",
+        "eval_loss",
+        *LM_EVAL_KEYS,
+    ]
+    df = df[cols].sort_values(["params", "run_name"]).reset_index(drop=True)
+    if len(df) != SCALING_EXPECTED_MODELS:
+        raise AssertionError(
+            f"Expected exactly {SCALING_EXPECTED_MODELS} scaling-sweep runs for "
+            f"{SCALING_VERSION}, found {len(df)}: {df['run_name'].tolist()}"
+        )
+    return df
+
+
+SCALING_HISTORY_METRICS: tuple[str, ...] = ("train/loss", "eval/loss")
+
+
+def fetch_parameter_scaling_history(api) -> pd.DataFrame:
+    """Pull train/loss and eval/loss history for each scaling-sweep run, downsampled
+    to the (sparse) eval steps so train/loss is co-sampled with eval/loss.
+
+    Long form: one row per (run_name, step, metric). `train/loss` is logged every
+    step but we keep only the steps where `eval/loss` is also logged — wandb's
+    `scan_history(keys=...)` filters to records where every requested key is
+    present, so a single scan with all three keys returns the eval-step rows
+    with all values populated.
+    """
+    print(f"Fetching parameter-scaling history from {WANDB_PROJECT} ...")
+    prefix = f"dna-bolinas-scaling-{SCALING_VERSION}-"
+    runs = _fetch_runs(api, prefix)
+    if len(runs) != SCALING_EXPECTED_MODELS:
+        raise AssertionError(
+            f"Expected exactly {SCALING_EXPECTED_MODELS} scaling-sweep runs for "
+            f"{SCALING_VERSION}, found {len(runs)}: {[r.name for r in runs]}"
+        )
+    frames: list[pd.DataFrame] = []
+    for run in runs:
+        print(f"  fetching history for {run.name} ...")
+        # `run.history(keys=...)` does server-side AND-filtering in a single
+        # GraphQL call — since eval/loss is sparse, the train/loss × eval/loss
+        # intersection is the ~34 eval-step rows, returned in seconds.
+        # `scan_history` paginates the full 215k-step underlying sequence and
+        # is ~100x slower for this query.
+        df = run.history(keys=list(SCALING_HISTORY_METRICS), samples=10000, pandas=True)
+        if df.empty:
+            print("    0 eval steps")
+            continue
+        df = df[["_step", *SCALING_HISTORY_METRICS]].rename(columns={"_step": "step"})
+        long = df.melt(id_vars=["step"], value_vars=list(SCALING_HISTORY_METRICS),
+                       var_name="metric", value_name="value")
+        long["run_name"] = run.name
+        frames.append(long)
+        print(f"    {len(df)} eval steps × {len(SCALING_HISTORY_METRICS)} metrics = {len(long)} rows")
+    out = pd.concat(frames, ignore_index=True)
+    out["step"] = out["step"].astype(int)
+    out = out[["run_name", "metric", "step", "value"]]
+    return out.sort_values(["run_name", "metric", "step"]).reset_index(drop=True)
+
+
+def main() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    api = wandb.Api(timeout=300)
+
+    transfer_df = fetch_transfer_validation(api)
+    transfer_path = DATA_DIR / "transfer_validation_results.csv"
+    transfer_df.to_csv(transfer_path, index=False)
+    print(f"Wrote {len(transfer_df)} rows to {transfer_path}")
+
+    scaling_df = fetch_parameter_scaling(api)
+    scaling_path = DATA_DIR / "parameter_scaling_results.csv"
+    scaling_df.to_csv(scaling_path, index=False)
+    print(f"Wrote {len(scaling_df)} rows to {scaling_path}")
+
+    history_df = fetch_parameter_scaling_history(api)
+    history_path = DATA_DIR / "parameter_scaling_history.csv"
+    history_df.to_csv(history_path, index=False)
+    print(f"Wrote {len(history_df)} rows to {history_path}")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
