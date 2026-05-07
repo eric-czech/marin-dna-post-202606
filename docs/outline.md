@@ -1,7 +1,7 @@
 ## Intro
 
 - Scaling laws ideally require training at optimal configurations for all scales 
-- Transfer is one way to accomplish this
+- Transfer is one way to accomplish this; Hyperball and Complete(d) make this possible
 - WIP
 
 ## Stats
