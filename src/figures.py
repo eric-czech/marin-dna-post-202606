@@ -624,14 +624,14 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         P_grid, A * P_grid ** (-alpha) + L_inf,
         color="0.2", linewidth=1.3, alpha=0.92, zorder=2,
     )
-    inset.axhline(L_inf, color="crimson", linewidth=0.9, linestyle=(0, (3, 2)), alpha=0.8, zorder=1)
+    inset.axhline(L_inf, color="black", linewidth=0.9, linestyle=(0, (3, 2)), alpha=0.8, zorder=1)
     # Anchor at the inset's right edge (axes fraction in x) at L_inf (data in y),
     # then nudge outward so the label sits just past the right spine, centered on the line.
     inset.annotate(
         rf"$L_\infty = {L_inf:.3f}$",
         xy=(1.0, L_inf), xycoords=("axes fraction", "data"),
         xytext=(4, 0), textcoords="offset points",
-        ha="left", va="center", fontsize=8, color="crimson",
+        ha="left", va="center", fontsize=8, color="black",
         annotation_clip=False,
     )
     for p, loss in zip(P, L, strict=True):
