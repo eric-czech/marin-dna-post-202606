@@ -606,7 +606,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         inset_bounds[2], inset_bounds[3],
         boxstyle="round,pad=0,rounding_size=0.025",
         transform=parent_ax.transAxes,
-        facecolor="#f3f4f6",
+        facecolor="#f6f7f9",
         edgecolor="black",
         linewidth=0.2,
         zorder=0,
