@@ -14,12 +14,16 @@ Usage:
 from __future__ import annotations
 
 import math
+import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
+from matplotlib.patches import FancyBboxPatch
+from matplotlib.ticker import ScalarFormatter
+from matplotlib.transforms import blended_transform_factory
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "transfer_validation_results.csv"
@@ -166,7 +170,7 @@ def _plot_axis(
     ax.set_xticklabels([value_formatter(v) for v in grid_values], rotation=30, ha="right", fontsize=8)
     ax.set_xlabel(axis_label, labelpad=_X_LABEL_PAD)
     ax.set_ylabel("loss")
-    ax.grid(axis="y", alpha=0.25, linewidth=0.5)
+    ax.grid(False)
 
 
 def _shape_legend_handles():
@@ -349,7 +353,7 @@ def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
             labels.append(label_for_subset[subset])
         ax.set_xscale("log")
         ax.set_title(group_title, fontsize=10)
-        ax.grid(True, which="both", alpha=0.25, linewidth=0.5)
+        ax.grid(False)
         ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=True, handletextpad=0.4)
     axes[0].set_ylabel("AUPRC")
     # x-label only on the middle panel.
@@ -389,7 +393,7 @@ def figure5_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
                 fontsize=8, color="0.35",
             )
         ax.set_title(f"{title} (n={n:,})", fontsize=10)
-        ax.grid(True, alpha=0.25, linewidth=0.5)
+        ax.grid(False)
 
     # Shared axis labels: "loss" only on the middle column of the bottom row;
     # "AUPRC" on the leftmost column only.
@@ -405,8 +409,88 @@ def figure5_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
     _save(fig, "figure5_loss_vs_vep_auprc")
 
 
-def figure3_loss_curves(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
-    """1x2: train loss / eval loss curves vs step (log-log), one line per param scale."""
+def _set_plain_decimal_yticks(ax) -> None:
+    """Force y-axis tick labels to plain decimals (no scientific notation).
+
+    Works for both linear and log y-scales. On log scales matplotlib's default
+    LogFormatter renders values like ``6×10⁻¹``; in this figure's loss range
+    (~0.5–1.5) plain decimals are more readable.
+    """
+    fmt = ScalarFormatter()
+    fmt.set_scientific(False)
+    fmt.set_useOffset(False)
+    ax.yaxis.set_major_formatter(fmt)
+    ax.yaxis.set_minor_formatter(fmt)
+
+
+def _fit_kaplan_law(params: np.ndarray, losses: np.ndarray) -> tuple[float, float, float]:
+    """Fit L(N) = A * N^(-alpha) + L_inf via nonlinear least squares.
+
+    Returns (A, alpha, L_inf). L_inf is the irreducible-loss asymptote.
+
+    Raises RuntimeError if the optimizer did not converge, if any scipy warning
+    fires during the call, if the parameter covariance is non-finite (parameters
+    unidentifiable), or if any fit parameter lands within `bound_tol_frac` of a
+    bound (which would indicate the bound is binding rather than the data
+    determining the parameter).
+    """
+    from scipy.optimize import curve_fit
+
+    def kaplan(N, A, alpha, L_inf):
+        return A * N ** (-alpha) + L_inf
+
+    L_min = float(np.min(losses))
+    L_inf0 = max(0.0, L_min - 0.1)
+    alpha0 = 0.1
+    N_med = float(np.median(params))
+    A0 = max((float(np.median(losses)) - L_inf0) * (N_med**alpha0), 1.0)
+
+    lower = np.array([0.0, 0.0, 0.0])
+    upper = np.array([np.inf, 5.0, L_min])
+    names = ("A", "alpha", "L_inf")
+
+    with warnings.catch_warnings():
+        # Treat any scipy/numpy warning during the fit (covariance estimation,
+        # convergence, divide-by-zero, etc.) as a hard failure.
+        warnings.simplefilter("error")
+        popt, pcov, infodict, mesg, ier = curve_fit(
+            kaplan,
+            params,
+            losses,
+            p0=[A0, alpha0, L_inf0],
+            bounds=(lower, upper),
+            maxfev=10000,
+            full_output=True,
+        )
+
+    # ier ∈ {1, 2, 3, 4} indicates a successful termination of the underlying
+    # least-squares algorithm; everything else (0, 5, ...) is a non-convergence.
+    if ier not in (1, 2, 3, 4):
+        raise RuntimeError(f"Kaplan fit did not converge: ier={ier}, mesg={mesg!r}")
+
+    if not np.all(np.isfinite(pcov)):
+        raise RuntimeError(
+            f"Kaplan fit covariance is non-finite (parameters unidentifiable): pcov={pcov!r}"
+        )
+
+    # Reject fits where any parameter is glued to a bound. For finite bounds use a
+    # fraction of the bound interval; for the semi-infinite A upper bound use a
+    # fraction of the parameter scale.
+    bound_tol_frac = 0.01
+    for val, lo, hi, name in zip(popt, lower, upper, names, strict=True):
+        scale = (hi - lo) if np.isfinite(hi) else max(abs(val), 1.0)
+        margin = bound_tol_frac * scale
+        if val - lo < margin or (np.isfinite(hi) and hi - val < margin):
+            raise RuntimeError(
+                f"Kaplan fit parameter {name}={val:.6g} is at bound "
+                f"(lo={lo}, hi={hi}, margin={margin:.3g})"
+            )
+
+    return float(popt[0]), float(popt[1]), float(popt[2])
+
+
+def figure3_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
+    """1x2: train/eval loss vs step. Inset on eval panel: final loss vs params with Kaplan fit."""
     name_to_params = dict(zip(results["run_name"], results["params"], strict=True))
     history = history.assign(params=history["run_name"].map(name_to_params))
     # Log-x cannot show step=0; the step-0 eval is pre-training and not informative anyway.
@@ -415,25 +499,115 @@ def figure3_loss_curves(history: pd.DataFrame, results: pd.DataFrame, palette: d
     fig, axes = plt.subplots(1, 2, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
     panels = [
         (axes[0], "train/loss", "train loss"),
-        (axes[1], "eval/loss", "eval loss"),
+        (axes[1], "eval/loss", "val loss"),
     ]
+    # Eval-loss lines need a high zorder so they draw over the inset on the right panel.
+    line_zorder = {axes[0]: 2, axes[1]: 20}
     for ax, metric, ylabel in panels:
         sub = history[history["metric"] == metric]
         for params in sorted(sub["params"].unique()):
             line = sub[sub["params"] == params].sort_values("step")
-            ax.plot(line["step"], line["value"], color=palette[int(params)], linewidth=1.3)
+            ax.plot(
+                line["step"], line["value"],
+                color=palette[int(params)], linewidth=1.3, zorder=line_zorder[ax],
+            )
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xlabel("step", labelpad=_X_LABEL_PAD)
         ax.set_ylabel(ylabel)
-        ax.grid(True, which="both", alpha=0.25, linewidth=0.5)
+        ax.grid(False)
+        # Loss values span ~0.5–1.5; render as plain decimals rather than 6×10⁻¹ etc.
+        _set_plain_decimal_yticks(ax)
 
-    fig.suptitle("Parameter scaling — loss vs step", fontsize=11, y=0.95)
+    # Inset on eval-loss panel: final eval loss vs params with Kaplan scaling-law fit.
+    # Sits in the bottom-left empty region (low-step / low-loss has no curve data there).
+    _attach_kaplan_inset(axes[1], results, palette)
+
+    fig.suptitle("Parameter scaling — loss curves & scaling law", fontsize=11, y=0.95)
     fig.tight_layout(rect=(0, 0.08, 1, 0.99))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
     _attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
-    _save(fig, "figure3_scaling_loss_curves")
+    _save(fig, "figure3_loss_scaling")
+
+
+def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> None:
+    """Embed a small params-vs-loss panel with Kaplan fit inside `parent_ax`.
+
+    Inset axes uses parent-axes-fraction coords. Fit annotation lives in the
+    parent's upper-right corner where the curves leave empty space.
+    """
+    fit_df = results.dropna(subset=["params", "eval_loss"]).sort_values("params")
+    P = fit_df["params"].astype(float).to_numpy()
+    L = fit_df["eval_loss"].astype(float).to_numpy()
+    A, alpha, L_inf = _fit_kaplan_law(P, L)
+
+    # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
+    # so the curves visually cross over the inset like a framed window beneath them.
+    inset_bounds = (0.07, 0.12, 0.27, 0.60)
+    inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
+
+    # Replace the default rectangular background/spines with a rounded FancyBboxPatch
+    # placed in parent axes-fraction coords, so the inset reads as a card with rounded edges.
+    inset.patch.set_visible(False)
+    for spine in inset.spines.values():
+        spine.set_visible(False)
+    rounded_bg = FancyBboxPatch(
+        (inset_bounds[0], inset_bounds[1]),
+        inset_bounds[2], inset_bounds[3],
+        boxstyle="round,pad=0,rounding_size=0.025",
+        transform=parent_ax.transAxes,
+        facecolor="#f3f4f6",
+        edgecolor="black",
+        linewidth=0.2,
+        zorder=0,
+        clip_on=False,
+    )
+    parent_ax.add_patch(rounded_bg)
+
+    # Y-range: top is tight to the max data value; bottom carries enough padding to hold
+    # the L_inf asymptote, the fit-text box just above it, and the L_inf annotation just below.
+    span = float(L.max() - L_inf)
+    inset.set_ylim(L_inf - 0.04 * span, L.max() + 0.05 * span)
+
+    P_grid = np.geomspace(P.min() * 0.92, P.max() * 1.08, 200)
+    inset.plot(
+        P_grid, A * P_grid ** (-alpha) + L_inf,
+        color="0.2", linewidth=1.3, alpha=0.92, zorder=2,
+    )
+    inset.axhline(L_inf, color="crimson", linewidth=0.9, linestyle=(0, (3, 2)), alpha=0.8, zorder=1)
+    # Anchor at the inset's right edge (axes fraction in x) at L_inf (data in y),
+    # then nudge outward so the label sits just past the right spine, centered on the line.
+    inset.annotate(
+        rf"$L_\infty = {L_inf:.3f}$",
+        xy=(1.0, L_inf), xycoords=("axes fraction", "data"),
+        xytext=(4, 0), textcoords="offset points",
+        ha="left", va="center", fontsize=8, color="crimson",
+        annotation_clip=False,
+    )
+    for p, loss in zip(P, L, strict=True):
+        inset.scatter(
+            [p], [loss], color=palette[int(p)],
+            s=32, edgecolors="k", linewidths=0.5, zorder=3,
+        )
+
+    inset.set_xscale("log")
+    inset.set_xlabel("params (N)", fontsize=9, labelpad=2)
+    inset.set_ylabel("")
+    inset.tick_params(labelsize=8, length=2.5, pad=1)
+    inset.minorticks_off()
+    inset.grid(False)
+    _set_plain_decimal_yticks(inset)
+
+    # Fit equation + constants centered horizontally within the inset, just above L_inf.
+    # Blended transform: x in axes fraction (so it stays centered as the inset resizes),
+    # y in data coords (so it tracks the L_inf asymptote).
+    fit_trans = blended_transform_factory(inset.transAxes, inset.transData)
+    inset.text(
+        0.5, L_inf + 0.05 * span,
+        rf"$L(N) = A\,N^{{-\alpha}} + L_\infty$" "\n" rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$",
+        transform=fit_trans, ha="center", va="bottom", fontsize=8, color="0.15",
+    )
 
 
 def main() -> None:
@@ -454,7 +628,7 @@ def main() -> None:
 
     figure1_lr(transfer_df, transfer_palette, transfer_params)
     figure2_beta2_epsilon(transfer_df, transfer_palette, transfer_params)
-    figure3_loss_curves(scaling_history, scaling_results, scaling_palette)
+    figure3_loss_scaling(scaling_history, scaling_results, scaling_palette)
     figure4_params_vs_auprc(scaling_results)
     figure5_loss_vs_auprc(scaling_results, scaling_palette)
 

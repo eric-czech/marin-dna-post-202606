@@ -62,9 +62,14 @@
 
 ### Parameter Scaling
 
-- Figure 3: Train/Eval Loss Curves
-  - Step vs loss for train and eval as 1x2 subplots
-  - Group and color by model param count (line plot only)
+- Figure 3: Loss scaling
+  - 1x3 subplots total
+  - Step vs loss for train and validation (eval/loss) as 1x2 first subplots
+    - Group and color by model param count (line plot only)
+  - Params vs validation loss
+    - Color by model param count
+    - Fit standard kaplan scaling law with asymptote and show fit details on plot
+  - Use global left-to-right legend below plot
 - Figure 4: Params vs. VEP AUPRC
   - Include missense, tss_proximal, 5_prime_UTR_variant, 3_prime_UTR_variant, splicing, synonymous metrics
   - Use 1x3 subplots with metrics in task groups:
