@@ -14,6 +14,30 @@
 - Sweeps
   - FLOPS and wall clock time
 
+### Eval (VEP) sample count by variant type
+
+┌────────────────────────────────────┬────────┬─────────────────────┬────────┐   
+│               subset               │   n    │ n_pos (target=True) │ n_neg  │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ (all)                              │ 24,530 │               2,453 │ 22,077 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ missense_variant                   │ 14,800 │               1,480 │ 13,320 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ splicing                           │  2,670 │                 267 │  2,403 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ 5_prime_UTR_variant                │  2,100 │                 210 │  1,890 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ tss_proximal                       │  1,800 │                 180 │  1,620 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ non_coding_transcript_exon_variant │  1,150 │                 115 │  1,035 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ distal                             │    780 │                  78 │    702 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ 3_prime_UTR_variant                │    770 │                  77 │    693 │
+├────────────────────────────────────┼────────┼─────────────────────┼────────┤
+│ synonymous_variant                 │    460 │                  46 │    414 │
+└────────────────────────────────────┴────────┴─────────────────────┴────────┘
+
 
 <details><summary>species</summary>
 
@@ -46,8 +70,11 @@ Outputs in /Users/eczech/tmp/bolinas_species_count/:
 - Figure 3: Train/Eval Loss Curves
   - Step vs loss for train and eval as 1x2 subplots
   - Group and color by model param count (line plot only)
-- Figure 4: Loss vs. VEP AUPRC
+- Figure 4: Params vs. VEP AUPRC
   - Include missense, tss_proximal, 5_prime_UTR_variant, 3_prime_UTR_variant, splicing, synonymous metrics
+  - Group and color by variant type (line+scatter plot)
+- Figure 5: Loss vs. VEP AUPRC
+  - Include same variant types as figure 4
   - 2x3 subplots w/ order:
     - missense, tss_proximal, 5_prime_UTR_variant
     - 3_prime_UTR_variant, splicing, synonymous
