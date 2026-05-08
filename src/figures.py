@@ -593,7 +593,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
-    inset_bounds = (0.07, 0.12, 0.27, 0.60)
+    inset_bounds = (0.07, 0.12, 0.27, 0.50)
     inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
 
     # Replace the default rectangular background/spines with a rounded FancyBboxPatch

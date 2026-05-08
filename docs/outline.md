@@ -1,8 +1,21 @@
+Title: Optimal 
+Subtitle: 
+
 ## Intro
 
+- The large majority of 
+
 - Scaling laws ideally require training at optimal configurations for all scales 
+  - Results can be significantly different otherwise
+    - Cite https://arxiv.org/pdf/2406.19146
+  - On learning rate and batch size scaling
+    - https://arxiv.org/pdf/2503.04715
+      - "The optimal learning rate follows a power-law relationship with N
+and D, while the optimal batch size is primarily influenced by D and remains
+largely invariant to N"
 - Transfer is one way to accomplish this; Hyperball and Complete(d) make this possible
 - WIP
+
 
 ## TODO
 
@@ -10,6 +23,11 @@
   - Experimentation is most of the work so how do you make that experimentation robust to changing capacity and experiment designs?
     - Batch sizing for the sake of experiment throughput is a big advantage
     - It is otherwise necessary to constantly be retuning
+    - References:
+      - https://arxiv.org/pdf/2604.22753
+        - "Scaling laws are used to plan multi-million-dollar training runs, but fitting those laws can itself cost millions"
+        - "At industrial scale, the pilot runs needed just to fit a scaling law can themselves
+consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
   - Discuss how transfer helps
   - What if a batch size exceeds HBM later in training?
   - What if you have to switch hardware with different HBM capacity?
@@ -51,6 +69,29 @@
 | distal                               |    780 |                  78 |    702 |
 | 3_prime_UTR_variant                  |    770 |                  77 |    693 |
 | synonymous_variant                   |    460 |                  46 |    414 |
+
+### FLOPs
+
+#### Parameter scaling sweep (one run per model size)
+
+| model params | training FLOPs |
+| ------------ | -------------: |
+| 46M          |       2.45e+19 |
+| 76M          |       4.00e+19 |
+| 128M         |       6.77e+19 |
+| 255M         |       1.33e+20 |
+| 476M         |       2.48e+20 |
+| 1B           |       5.80e+20 |
+| 2B           |       1.17e+21 |
+
+#### Transfer validation sweep (per-run cost × n at each model size)
+
+| model params |  n | run FLOPs | total FLOPs |
+| ------------ | -: | --------: | ----------: |
+| 255M         | 25 |  1.57e+19 |    3.93e+20 |
+| 476M         | 25 |  2.92e+19 |    7.30e+20 |
+| 1B           | 23 |  6.84e+19 |    1.57e+21 |
+
 
 ### Details
 
