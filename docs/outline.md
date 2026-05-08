@@ -3,8 +3,13 @@ Subtitle:
 
 ## Intro
 
-- The large majority of 
-
+- The large majority (~80%) of compute resources required to train a modern LLM result from experimentation, not final models [https://arxiv.org/abs/2605.01158]
+- This means that if you want to build a language model, then you are likely to spend most of your time trying to determine:
+  1. The influence of a single design choice in isolation
+  2. How to actually isolate that choice
+  3. Whether or not that choice will scale
+- This experimentation frequently needs to compare results across different parameter, token and/or batch scales
+- Scaling Laws are one obvious example for this kind of experimentation, as discussed in https://9dca63b0.openathena-ai.pages.dev/blog/delphi
 - Scaling laws ideally require training at optimal configurations for all scales 
   - Results can be significantly different otherwise
     - Cite https://arxiv.org/pdf/2406.19146
@@ -33,6 +38,7 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
   - What if you have to switch hardware with different HBM capacity?
 - Find and discuss references on confounding in scaling laws from lack of tuning
 - Add token counts to transfer figures to make scale clear
+    - See stats/sweeps below
 - Compare predicted hypers at 1e23 scale to text models at that scale
 - Create a table containing best hypers by FLOP and token count as a guideline for others 
     - Start with this to make it clear that transfer is a function of tokens
@@ -69,6 +75,14 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 | distal                               |    780 |                  78 |    702 |
 | 3_prime_UTR_variant                  |    770 |                  77 |    693 |
 | synonymous_variant                   |    460 |                  46 |    414 |
+
+### Sweeps
+
+- Reference: ~25M params, 2.5B tok, 16k batch, 4E+17 FLOPs
+- Transfer: ~1.1B params, 10B tok, 4k batch, 6.8E+19 FLOPs
+    - vs Reference: 44× params, 4× tokens, 0.25× batch, 170× FLOPs
+- Scaling: ~4B params, 84B tok, 1536 batch, ??? FLOPs
+    - vs Reference: 160× params, 34× tokens, 0.094× batch, ??? FLOPs
 
 ### FLOPs
 

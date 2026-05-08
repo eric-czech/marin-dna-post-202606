@@ -44,6 +44,25 @@ _X_LABEL_PAD = 0
 
 CONTROL_ROLES = ("positive-control", "negative-control")
 
+# Compact (N, D, C) summary contrasting the small-scale reference Vizier sweep
+# with the larger transfer-validation sweep depicted in Figures 1 & 2.
+# Numbers come from docs/outline.md (`### Sweeps` + `#### Transfer validation
+# sweep`); validation N and C are shown as ranges across the three scales.
+_TRANSFER_SUBTITLE = (
+    r"$N{=}25\mathrm{M},\,D{=}2.5\mathrm{B},\,C{=}4{\times}10^{17}$"
+    r"$\,\rightarrow\,$"
+    r"$N{=}255\mathrm{M}{-}1\mathrm{B},\,D{=}10\mathrm{B},\,C{=}1.6{-}6.8{\times}10^{19}$"
+)
+
+# Scaling-sweep summary: N, D, C ranges across all 8 models. N spans the full
+# planned range (46M–4B); D is one epoch over the training mixture (~84B
+# tokens); C range is taken from `#### Parameter scaling sweep` in outline.md
+# (smallest completed = 46M, largest completed = 2B; 4B is still in flight).
+_SCALING_SUBTITLE = (
+    r"$N{=}46\mathrm{M}{-}4\mathrm{B},\,D{=}84\mathrm{B},\,"
+    r"C{=}2.5{\times}10^{19}{-}1.2{\times}10^{21}$"
+)
+
 
 def _params_label(num_params: int | float) -> str:
     n = int(num_params)
@@ -271,7 +290,7 @@ def figure1_lr(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         value_formatter=_fmt_lr,
         palette=palette,
     )
-    ax.set_title("Transfer validation — loss vs learning rate")
+    ax.set_title("Transfer validation — loss vs learning rate\n" + _TRANSFER_SUBTITLE, fontsize=11)
     # Reserve room for the legends below.
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     _attach_legends_below(fig, palette, params)
@@ -572,8 +591,11 @@ def figure3_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: 
     # Sits in the bottom-left empty region (low-step / low-loss has no curve data there).
     _attach_kaplan_inset(axes[1], results, palette)
 
-    fig.suptitle("Parameter scaling — loss curves & scaling law", fontsize=11, y=0.95)
-    fig.tight_layout(rect=(0, 0.08, 1, 0.99))
+    fig.suptitle(
+        "Parameter scaling — loss curves & scaling law\n" + _SCALING_SUBTITLE,
+        fontsize=11, y=0.94,
+    )
+    fig.tight_layout(rect=(0, 0.08, 1, 0.97))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
     _attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
@@ -593,7 +615,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
-    inset_bounds = (0.07, 0.12, 0.27, 0.50)
+    inset_bounds = (0.11, 0.12, 0.27, 0.50)
     inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
 
     # Replace the default rectangular background/spines with a rounded FancyBboxPatch
@@ -606,7 +628,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         inset_bounds[2], inset_bounds[3],
         boxstyle="round,pad=0,rounding_size=0.025",
         transform=parent_ax.transAxes,
-        facecolor="#f6f7f9",
+        facecolor="white",
         edgecolor="black",
         linewidth=0.2,
         zorder=0,
