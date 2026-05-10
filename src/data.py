@@ -8,9 +8,8 @@ Each row corresponds to one wandb run. Hparams come from `run.config`; `params` 
 `tokens` come from the run's tag list (`params=...`, `tokens=...`); `eval/loss` and
 the lm_eval AUPRC metrics come from `run.summary` (final logged value).
 
-TODO: Once both sweeps are stable, add a filter on `state == "finished"` so partial
-runs don't appear in the output. For now we include every matching run and tolerate
-missing summary values (NaN) so in-flight runs are still represented.
+Only runs with `state == "finished"` are included; crashed and in-flight runs are
+dropped.
 
 Usage:
     uv run src/data.py
@@ -166,8 +165,13 @@ def _fetch_runs(api, name_prefix: str) -> list:
             filters={"display_name": {"$regex": f"^{re.escape(name_prefix)}"}},
         )
     )
-    print(f"  found {len(runs)} runs matching {name_prefix!r}")
-    return runs
+    finished = [r for r in runs if r.state == "finished"]
+    dropped = len(runs) - len(finished)
+    msg = f"  found {len(runs)} runs matching {name_prefix!r}"
+    if dropped:
+        msg += f" (kept {len(finished)} finished, dropped {dropped} non-finished)"
+    print(msg)
+    return finished
 
 
 def fetch_transfer_validation(api) -> pd.DataFrame:

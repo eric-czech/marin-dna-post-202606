@@ -81,8 +81,8 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 - Reference: ~25M params, 2.5B tok, 16k batch, 4E+17 FLOPs
 - Transfer: ~1.1B params, 10B tok, 4k batch, 6.8E+19 FLOPs
     - vs Reference: 44× params, 4× tokens, 0.25× batch, 170× FLOPs
-- Scaling: ~4B params, 84B tok, 1536 batch, ??? FLOPs
-    - vs Reference: 160× params, 34× tokens, 0.094× batch, ??? FLOPs
+- Scaling: ~4B params, 84B tok, 1536 batch, 2.1E+21 FLOPs
+    - vs Reference: 160× params, 34× tokens, 0.094× batch, 5,200× FLOPs
 
 ### FLOPs
 
@@ -97,6 +97,7 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 | 476M         |       2.48e+20 |
 | 1B           |       5.80e+20 |
 | 2B           |       1.17e+21 |
+| 4B           |       2.07e+21 |
 
 #### Transfer validation sweep (per-run cost × n at each model size)
 
@@ -104,7 +105,7 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 | ------------ | -: | --------: | ----------: |
 | 255M         | 25 |  1.57e+19 |    3.93e+20 |
 | 476M         | 25 |  2.92e+19 |    7.30e+20 |
-| 1B           | 23 |  6.84e+19 |    1.57e+21 |
+| 1B           | 20 |  6.84e+19 |    1.37e+21 |
 
 
 ### Details

@@ -4,10 +4,10 @@ Kaplan scaling-law fit
 L(N) = A · N^(-α) + L_∞
 
 data points : 8
-RMSE        : 0.007148
-max |resid| : 0.01299
+RMSE        : 0.005875
+max |resid| : 0.0123
 
 param           value      ± std err    bounds
-A             27.8153             14    [0, ∞]
-alpha        0.203362         0.0344    [0, 5]
-L_inf        0.305608          0.085    [0, 0.6226]
+A             17.5936           6.64    [0, ∞]
+alpha        0.169713         0.0275    [0, 5]
+L_inf        0.191879         0.0997    [0, 0.6044]

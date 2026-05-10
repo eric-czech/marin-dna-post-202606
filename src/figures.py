@@ -55,12 +55,11 @@ _TRANSFER_SUBTITLE = (
 )
 
 # Scaling-sweep summary: N, D, C ranges across all 8 models. N spans the full
-# planned range (46M–4B); D is one epoch over the training mixture (~84B
-# tokens); C range is taken from `#### Parameter scaling sweep` in outline.md
-# (smallest completed = 46M, largest completed = 2B; 4B is still in flight).
+# range (46M–4B); D is one epoch over the training mixture (~84B tokens);
+# C range is taken from `#### Parameter scaling sweep` in outline.md.
 _SCALING_SUBTITLE = (
     r"$N{=}46\mathrm{M}{-}4\mathrm{B},\,D{=}84\mathrm{B},\,"
-    r"C{=}2.5{\times}10^{19}{-}1.2{\times}10^{21}$"
+    r"C{=}2.5{\times}10^{19}{-}2.1{\times}10^{21}$"
 )
 
 
@@ -126,6 +125,7 @@ def _plot_axis(
     log_scale: bool,
     value_formatter,
     palette: dict,
+    include_negative_control: bool = True,
 ) -> None:
     """Plot eval/loss vs `axis_field` for the relevant rows. One series per param scale.
 
@@ -180,7 +180,7 @@ def _plot_axis(
             )
 
         # Negative control (1B only): diamond at the (interpolated) untransferred value.
-        neg = scale[scale["role"] == "negative-control"]
+        neg = scale[scale["role"] == "negative-control"] if include_negative_control else scale.iloc[0:0]
         if not neg.empty:
             for _, row in neg.iterrows():
                 x = _interpolate_x(float(row[axis_field]), grid_values, grid_xs, log_scale)
@@ -196,13 +196,17 @@ def _plot_axis(
     ax.grid(False)
 
 
-def _shape_legend_handles():
+def _shape_legend_handles(include_reference: bool = True):
     """Proxy artists for the marker-shape legend (no axes side-effects)."""
     common = dict(color="w", markerfacecolor="lightgray", markeredgecolor="k", markeredgewidth=0.6, linestyle="")
     sweep = Line2D([0], [0], marker="o", markersize=8, **common)
     optimal = Line2D([0], [0], marker="s", markersize=8, **common)
-    reference = Line2D([0], [0], marker="D", markersize=8, **common)
-    return [sweep, optimal, reference], ["sweep", "optimal (predicted)", "control (reference)"]
+    handles = [sweep, optimal]
+    labels = ["sweep", "optimal (predicted)"]
+    if include_reference:
+        handles.append(Line2D([0], [0], marker="D", markersize=8, **common))
+        labels.append("control (reference)")
+    return handles, labels
 
 
 def _params_legend_handles(palette: dict, params: list[int]):
@@ -246,13 +250,13 @@ def _attach_params_legend_below(fig, palette: dict, params: list[int], *, width_
     )
 
 
-def _attach_legends_below(fig, palette: dict, params: list[int]) -> None:
+def _attach_legends_below(fig, palette: dict, params: list[int], include_reference: bool = True) -> None:
     """Two horizontal figure-level legends below the axes:
        1. left  — `model params` (one square per scale)
        2. right — marker shape (sweep / control)
     """
     p_handles, p_labels = _params_legend_handles(palette, params)
-    s_handles, s_labels = _shape_legend_handles()
+    s_handles, s_labels = _shape_legend_handles(include_reference=include_reference)
 
     leg_params = fig.legend(
         p_handles, p_labels,
@@ -307,6 +311,7 @@ def figure2_beta2_epsilon(df: pd.DataFrame, palette: dict, params: list[int]) ->
         log_scale=False,
         value_formatter=_fmt_beta2,
         palette=palette,
+        include_negative_control=False,
     )
     # Push the β₂ label down slightly relative to the global label pad.
     axes[0].xaxis.labelpad = 4
@@ -318,12 +323,13 @@ def figure2_beta2_epsilon(df: pd.DataFrame, palette: dict, params: list[int]) ->
         log_scale=True,
         value_formatter=_fmt_epsilon,
         palette=palette,
+        include_negative_control=False,
     )
     # Pull the ε label up closer to the tick labels.
     axes[1].xaxis.labelpad = -4
     fig.suptitle(r"Transfer validation — loss vs $\beta_2$ and $\epsilon$", fontsize=11, y=0.95)
     fig.tight_layout(rect=(0, 0.08, 1, 0.99))
-    _attach_legends_below(fig, palette, params)
+    _attach_legends_below(fig, palette, params, include_reference=False)
     _save(fig, "figure2_beta2_epsilon_transfer")
 
 
@@ -681,8 +687,20 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     )
 
 
+def _round_sig(x: float, sig: int = 6) -> float:
+    """Round `x` to `sig` significant figures (NaN-safe). Snaps float-precision-jittered values."""
+    if x is None or pd.isna(x) or x == 0:
+        return x
+    return float(f"{x:.{sig}g}")
+
+
 def main() -> None:
     transfer_df = pd.read_csv(DATA_PATH)
+    # Different runs can store the same nominal sweep value with slightly different
+    # float bit patterns (e.g. 2e-9 vs 1.999999999999999e-9), which then show up as
+    # duplicate x-axis ticks. Snap sweep-axis fields to 6 sig figs to fix this.
+    for col in ("learning_rate", "beta2", "epsilon"):
+        transfer_df[col] = transfer_df[col].apply(_round_sig)
     print(f"Loaded {len(transfer_df)} rows from {DATA_PATH}")
     scaling_results = pd.read_csv(SCALING_RESULTS_PATH)
     print(f"Loaded {len(scaling_results)} rows from {SCALING_RESULTS_PATH}")

@@ -302,6 +302,9 @@ dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,181872,0.6703208088874817
 dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,188608,0.6548826694488525
 dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,195344,0.6393294930458069
 dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,202080,0.6226422786712646
+dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,208816,0.6111559867858887
+dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,215552,0.6044574975967407
+dna-bolinas-scaling-v0.5-h2944-p4B,eval/loss,215573,0.6044465899467468
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,0,2.314582109451294
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,6736,1.3006199598312378
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,13472,1.2673150300979614
@@ -333,6 +336,9 @@ dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,181872,1.078916311264038
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,188608,1.0423741340637207
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,195344,1.0325446128845215
 dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,202080,1.046281099319458
+dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,208816,1.0334043502807617
+dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,215552,1.009300708770752
+dna-bolinas-scaling-v0.5-h2944-p4B,train/loss,215573,1.0204869508743286
 dna-bolinas-scaling-v0.5-h640-p46M,eval/loss,0,2.1616499423980713
 dna-bolinas-scaling-v0.5-h640-p46M,eval/loss,6736,1.2291159629821777
 dna-bolinas-scaling-v0.5-h640-p46M,eval/loss,13472,1.2069674730300903
