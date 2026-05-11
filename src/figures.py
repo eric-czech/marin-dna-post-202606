@@ -2,6 +2,7 @@
 
 Figure 1: eval/loss vs learning_rate (single panel).
 Figure 2: eval/loss vs beta2 / epsilon (1x2 panels).
+Figure 3: per-region eval/val_<region>/loss vs LR / beta2 / epsilon (3x3 panels).
 
 Both figures union v0.14 + v0.15 runs and color by parameter scale. Per-scale
 lines connect (axis-value -> mean eval/loss) so duplicate axis values across
@@ -126,15 +127,17 @@ def _plot_axis(
     value_formatter,
     palette: dict,
     include_negative_control: bool = True,
+    y_field: str = "eval_loss",
+    y_label: str = "loss",
 ) -> None:
-    """Plot eval/loss vs `axis_field` for the relevant rows. One series per param scale.
+    """Plot `y_field` vs `axis_field` for the relevant rows. One series per param scale.
 
     Includes:
       - sweep points for runs with role == axis_role  (circles)
       - per-scale positive-control                    (square, on grid center)
       - 1B-only negative-control                      (square, x-position interpolated)
     """
-    sub = df[df["role"].isin([axis_role, *CONTROL_ROLES])].dropna(subset=[axis_field, "eval_loss"]).copy()
+    sub = df[df["role"].isin([axis_role, *CONTROL_ROLES])].dropna(subset=[axis_field, y_field]).copy()
 
     # Union x grid: every unique axis value seen in sweep + positive-control. Negative
     # control's value is interpolated on top of this grid (it's untransferred).
@@ -147,15 +150,15 @@ def _plot_axis(
         scale = sub[sub["params"] == params]
         color = palette[int(params)]
 
-        # Per-scale line: connect mean eval/loss at each axis value, ascending.
+        # Per-scale line: connect mean y at each axis value, ascending.
         line_pts = (
             scale[scale["role"].isin([axis_role, "positive-control"])]
-            .groupby(axis_field, as_index=False)["eval_loss"].mean()
+            .groupby(axis_field, as_index=False)[y_field].mean()
             .sort_values(axis_field)
         )
         if not line_pts.empty:
             line_xs = [grid_lookup[v] for v in line_pts[axis_field]]
-            ax.plot(line_xs, line_pts["eval_loss"].values, color=color, linewidth=1, alpha=0.6, zorder=2)
+            ax.plot(line_xs, line_pts[y_field].values, color=color, linewidth=1, alpha=0.6, zorder=2)
 
         # Marker size shared across roles so circles / squares / diamonds read as
         # equally weighted; only the shape encodes role.
@@ -166,7 +169,7 @@ def _plot_axis(
         if not sweep.empty:
             sweep_xs = [grid_lookup[v] for v in sweep[axis_field]]
             ax.scatter(
-                sweep_xs, sweep["eval_loss"].values,
+                sweep_xs, sweep[y_field].values,
                 s=marker_size, color=color, marker="o", edgecolors="k", linewidths=0.4, zorder=3,
             )
 
@@ -175,7 +178,7 @@ def _plot_axis(
         if not pos.empty:
             pos_xs = [grid_lookup[v] for v in pos[axis_field]]
             ax.scatter(
-                pos_xs, pos["eval_loss"].values,
+                pos_xs, pos[y_field].values,
                 s=marker_size, color=color, marker="s", edgecolors="k", linewidths=0.6, zorder=4,
             )
 
@@ -185,14 +188,14 @@ def _plot_axis(
             for _, row in neg.iterrows():
                 x = _interpolate_x(float(row[axis_field]), grid_values, grid_xs, log_scale)
                 ax.scatter(
-                    [x], [row["eval_loss"]],
+                    [x], [row[y_field]],
                     s=marker_size, color=color, marker="D", edgecolors="k", linewidths=0.6, zorder=4,
                 )
 
     ax.set_xticks(grid_xs)
     ax.set_xticklabels([value_formatter(v) for v in grid_values], rotation=30, ha="right", fontsize=8)
     ax.set_xlabel(axis_label, labelpad=_X_LABEL_PAD)
-    ax.set_ylabel("loss")
+    ax.set_ylabel(y_label)
     ax.grid(False)
 
 
@@ -250,7 +253,11 @@ def _attach_params_legend_below(fig, palette: dict, params: list[int], *, width_
     )
 
 
-def _attach_legends_below(fig, palette: dict, params: list[int], include_reference: bool = True) -> None:
+def _attach_legends_below(
+    fig, palette: dict, params: list[int],
+    include_reference: bool = True,
+    legend_y: float = _LEGEND_Y,
+) -> None:
     """Two horizontal figure-level legends below the axes:
        1. left  — `model params` (one square per scale)
        2. right — marker shape (sweep / control)
@@ -261,14 +268,14 @@ def _attach_legends_below(fig, palette: dict, params: list[int], include_referen
     leg_params = fig.legend(
         p_handles, p_labels,
         ncol=len(p_handles), title="model params",
-        loc="upper right", bbox_to_anchor=(0.41, _LEGEND_Y),
+        loc="upper right", bbox_to_anchor=(0.41, legend_y),
         **_LEGEND_KW,
     )
     fig.add_artist(leg_params)
     fig.legend(
         s_handles, s_labels,
         ncol=len(s_handles), title="run type",
-        loc="upper left", bbox_to_anchor=(0.43, _LEGEND_Y),
+        loc="upper left", bbox_to_anchor=(0.43, legend_y),
         **_LEGEND_KW,
     )
 
@@ -333,8 +340,85 @@ def figure2_beta2_epsilon(df: pd.DataFrame, palette: dict, params: list[int]) ->
     _save(fig, "figure2_beta2_epsilon_transfer")
 
 
+# Rows of figure 3: (region key, label used in axis text / row title).
+_REGION_ROWS: tuple[tuple[str, str], ...] = (
+    ("cds", "CDS"),
+    ("upstream", "upstream"),
+    ("downstream", "downstream"),
+)
+# Cols of figure 3: (axis role, axis field, axis label, log scale, formatter).
+_HYPER_COLS: tuple[tuple[str, str, str, bool, "callable"], ...] = (
+    ("learning_rate", "learning_rate", r"learning rate ($\eta$)", True, _fmt_lr),
+    ("beta2", "beta2", r"$\beta_2$", False, _fmt_beta2),
+    ("epsilon", "epsilon", r"$\epsilon$", True, _fmt_epsilon),
+)
+
+
+def figure3_region_hyper_transfer(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
+    """3x3 grid: per-region transfer loss vs each tuned hyper.
+
+    Rows are genomic regions (CDS / upstream / downstream); columns are the
+    swept hypers (learning rate / β₂ / ε). y is `eval/val_<region>/loss` from
+    the corresponding region column in the transfer CSV. Free y-axis per cell.
+    Negative controls are omitted (this figure focuses on transfer-vs-direct
+    sweep shapes per region).
+    """
+    fig, axes = plt.subplots(3, 3, figsize=(FIGURE_WIDTH, 8.0))
+    for r, (region_key, region_label) in enumerate(_REGION_ROWS):
+        y_field = f"eval_loss_{region_key}"
+        for c, (axis_role, axis_field, axis_label, log_scale, fmt) in enumerate(_HYPER_COLS):
+            ax = axes[r, c]
+            _plot_axis(
+                ax, df,
+                axis_role=axis_role,
+                axis_field=axis_field,
+                axis_label=axis_label if r == 2 else "",
+                log_scale=log_scale,
+                value_formatter=fmt,
+                palette=palette,
+                include_negative_control=False,
+                y_field=y_field,
+                y_label="loss" if c == 0 else "",
+            )
+            if r != 2:
+                ax.set_xticklabels([])
+                ax.set_xlabel("")
+            if c == 0:
+                # Row label on the left, outside the axes.
+                ax.annotate(
+                    region_label,
+                    xy=(-0.22, 0.5), xycoords="axes fraction",
+                    rotation=90, ha="center", va="center",
+                    fontsize=11, fontweight="bold",
+                )
+    fig.suptitle(
+        "Transfer validation — per-region loss vs learning rate, $\\beta_2$, and $\\epsilon$",
+        fontsize=11, y=0.985,
+    )
+    # Explicit margins (no tight_layout) so the title and legend hug the plot grid tightly.
+    fig.subplots_adjust(top=0.9525, bottom=0.1225, left=0.055, right=0.99, hspace=0.12, wspace=0.18)
+    # Inlined two-legend placement (centered around x=0.5) for the bottom strip.
+    p_handles, p_labels = _params_legend_handles(palette, params)
+    s_handles, s_labels = _shape_legend_handles(include_reference=False)
+    leg_y = 0.0475
+    leg_params = fig.legend(
+        p_handles, p_labels,
+        ncol=len(p_handles), title="model params",
+        loc="upper right", bbox_to_anchor=(0.49, leg_y),
+        **_LEGEND_KW,
+    )
+    fig.add_artist(leg_params)
+    fig.legend(
+        s_handles, s_labels,
+        ncol=len(s_handles), title="run type",
+        loc="upper left", bbox_to_anchor=(0.51, leg_y),
+        **_LEGEND_KW,
+    )
+    _save(fig, "figure3_region_hyper_transfer")
+
+
 # Eval VEP sample sizes per variant type (from docs/outline.md). Embedded in
-# Figure 5's panel titles. Figure 4 reuses the same ordering for consistency.
+# Figure 6's panel titles. Figure 5 reuses the same ordering for consistency.
 VEP_PANELS: tuple[tuple[str, str, int], ...] = (
     ("missense_variant", "missense", 14800),
     ("tss_proximal", "promoter", 1800),
@@ -346,20 +430,20 @@ VEP_PANELS: tuple[tuple[str, str, int], ...] = (
 _MARKER_AREA = 110.0
 
 
-# 1x3 task-group panels for Figure 4. Each tuple is (panel title, list of subset keys).
+# 1x3 task-group panels for Figure 5. Each tuple is (panel title, list of subset keys).
 # Subset order within each panel determines tab10 color slot (matched to VEP_PANELS).
-FIGURE4_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("upstream", ("tss_proximal", "5_prime_UTR_variant")),
+FIGURE5_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("CDS", ("missense_variant", "synonymous_variant")),
+    ("upstream", ("tss_proximal", "5_prime_UTR_variant")),
     ("other", ("3_prime_UTR_variant", "splicing")),
 )
 
 
-def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
+def figure5_params_vs_auprc(results: pd.DataFrame) -> None:
     """1x3 line+scatter panels by task group: params (log-x) vs AUPRC.
 
     Each variant type's color matches its slot in VEP_PANELS so the visual mapping
-    is consistent across this figure and Figure 5; per-panel legends list only the
+    is consistent across this figure and Figure 6; per-panel legends list only the
     variants drawn there.
     """
     cmap = plt.get_cmap("tab10")
@@ -367,7 +451,7 @@ def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
     label_for_subset = {subset: label for subset, label, _n in VEP_PANELS}
 
     fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, 4.2))
-    for ax, (group_title, subsets) in zip(axes, FIGURE4_GROUPS, strict=True):
+    for ax, (group_title, subsets) in zip(axes, FIGURE5_GROUPS, strict=True):
         handles: list = []
         labels: list[str] = []
         for subset in subsets:
@@ -391,10 +475,10 @@ def figure4_params_vs_auprc(results: pd.DataFrame) -> None:
 
     fig.suptitle("Parameter scaling — params vs VEP AUPRC by variant type", fontsize=11, y=0.97)
     fig.tight_layout(rect=(0, 0.02, 1, 0.99))
-    _save(fig, "figure4_params_vs_vep_auprc")
+    _save(fig, "figure5_params_vs_vep_auprc")
 
 
-def figure5_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
+def figure6_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
     """2x3 scatter: final eval/loss (x) vs lm_eval AUPRC (y) for six VEP subsets.
 
     Marker color encodes params; size is uniform.
@@ -436,7 +520,7 @@ def figure5_loss_vs_auprc(results: pd.DataFrame, palette: dict) -> None:
 
     params_present = sorted({int(p) for p in results["params"].dropna().unique()})
     _attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
-    _save(fig, "figure5_loss_vs_vep_auprc")
+    _save(fig, "figure6_loss_vs_vep_auprc")
 
 
 def _set_plain_decimal_yticks(ax) -> None:
@@ -521,7 +605,7 @@ def _fit_kaplan_law(params: np.ndarray, losses: np.ndarray) -> tuple[float, floa
     return A_fit, alpha_fit, L_inf_fit
 
 
-KAPLAN_FIT_REPORT_PATH = FIGURES_DIR / "figure3_loss_scaling.txt"
+KAPLAN_FIT_REPORT_PATH = FIGURES_DIR / "figure4_loss_scaling.txt"
 
 
 def _write_kaplan_fit_report(
@@ -563,7 +647,7 @@ def _write_kaplan_fit_report(
     KAPLAN_FIT_REPORT_PATH.write_text("\n".join(lines) + "\n")
 
 
-def figure3_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
+def figure4_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     """1x2: train/eval loss vs step. Inset on eval panel: final loss vs params with Kaplan fit."""
     name_to_params = dict(zip(results["run_name"], results["params"], strict=True))
     history = history.assign(params=history["run_name"].map(name_to_params))
@@ -605,7 +689,7 @@ def figure3_loss_scaling(history: pd.DataFrame, results: pd.DataFrame, palette: 
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
     _attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
-    _save(fig, "figure3_loss_scaling")
+    _save(fig, "figure4_loss_scaling")
 
 
 def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> None:
@@ -717,9 +801,10 @@ def main() -> None:
 
     figure1_lr(transfer_df, transfer_palette, transfer_params)
     figure2_beta2_epsilon(transfer_df, transfer_palette, transfer_params)
-    figure3_loss_scaling(scaling_history, scaling_results, scaling_palette)
-    figure4_params_vs_auprc(scaling_results)
-    figure5_loss_vs_auprc(scaling_results, scaling_palette)
+    figure3_region_hyper_transfer(transfer_df, transfer_palette, transfer_params)
+    figure4_loss_scaling(scaling_history, scaling_results, scaling_palette)
+    figure5_params_vs_auprc(scaling_results)
+    figure6_loss_vs_auprc(scaling_results, scaling_palette)
 
 
 if __name__ == "__main__":

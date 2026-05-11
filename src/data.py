@@ -8,8 +8,11 @@ Each row corresponds to one wandb run. Hparams come from `run.config`; `params` 
 `tokens` come from the run's tag list (`params=...`, `tokens=...`); `eval/loss` and
 the lm_eval AUPRC metrics come from `run.summary` (final logged value).
 
-Only runs with `state == "finished"` are included; crashed and in-flight runs are
-dropped.
+A run is considered "complete" — and thus included — if either:
+  - `state == "finished"`, or
+  - `state == "crashed"` AND `run_progress > 0.99`
+Some runs failed during artifact upload at the very end of training but successfully
+logged their final eval metrics; the second branch keeps those.
 
 Usage:
     uv run src/data.py
@@ -155,7 +158,32 @@ def _base_row(run, version: str) -> dict:
     row["run_progress"] = float(last_step) / total_steps if last_step is not None and total_steps else float("nan")
     row["tflops"] = _tflops_from_gflops(run.summary.get(THROUGHPUT_GFLOPS_KEY))
     row["eval_loss"] = _summary_float(run.summary, "eval/loss")
+    for region in ("cds", "upstream", "downstream"):
+        row[f"eval_loss_{region}"] = _summary_float(run.summary, f"eval/val_{region}/loss")
     return row
+
+
+CRASHED_PROGRESS_THRESHOLD = 0.99
+
+
+def _is_complete(run) -> bool:
+    """A run is complete if finished, or crashed but having logged ~all training steps.
+
+    The second case covers runs that crashed during end-of-training artifact upload
+    after their final eval metrics had already been logged — see module docstring.
+    """
+    if run.state == "finished":
+        return True
+    if run.state != "crashed":
+        return False
+    last_step = run.summary.get("_step")
+    if last_step is None:
+        return False
+    flat = _flatten(dict(run.config))
+    total_steps = _lookup(flat, ("trainer.num_train_steps",), run.name)
+    if not total_steps:
+        return False
+    return float(last_step) / float(total_steps) > CRASHED_PROGRESS_THRESHOLD
 
 
 def _fetch_runs(api, name_prefix: str) -> list:
@@ -165,13 +193,13 @@ def _fetch_runs(api, name_prefix: str) -> list:
             filters={"display_name": {"$regex": f"^{re.escape(name_prefix)}"}},
         )
     )
-    finished = [r for r in runs if r.state == "finished"]
-    dropped = len(runs) - len(finished)
+    complete = [r for r in runs if _is_complete(r)]
+    dropped = len(runs) - len(complete)
     msg = f"  found {len(runs)} runs matching {name_prefix!r}"
     if dropped:
-        msg += f" (kept {len(finished)} finished, dropped {dropped} non-finished)"
+        msg += f" (kept {len(complete)} complete, dropped {dropped} incomplete)"
     print(msg)
-    return finished
+    return complete
 
 
 def fetch_transfer_validation(api) -> pd.DataFrame:
@@ -195,7 +223,7 @@ def fetch_transfer_validation(api) -> pd.DataFrame:
         "batch_size", "num_train_steps", "train_seq_len",
         "learning_rate", "adam_lr", "beta1", "beta2", "epsilon",
         "max_grad_norm", "z_loss_weight", "initializer_range",
-        "eval_loss",
+        "eval_loss", "eval_loss_cds", "eval_loss_upstream", "eval_loss_downstream",
     ]
     df = df[cols].sort_values(["version", "params", "run_name"]).reset_index(drop=True)
     return df
@@ -219,7 +247,7 @@ def fetch_parameter_scaling(api) -> pd.DataFrame:
         "batch_size", "num_train_steps", "train_seq_len",
         "learning_rate", "adam_lr", "beta1", "beta2", "epsilon",
         "max_grad_norm", "z_loss_weight", "initializer_range",
-        "eval_loss",
+        "eval_loss", "eval_loss_cds", "eval_loss_upstream", "eval_loss_downstream",
         *LM_EVAL_KEYS,
     ]
     df = df[cols].sort_values(["params", "run_name"]).reset_index(drop=True)
