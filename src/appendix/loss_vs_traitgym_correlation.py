@@ -40,6 +40,7 @@ import wandb
 from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -88,6 +89,16 @@ def _resolve(api: wandb.Api, name: str):
     return runs[0]
 
 
+def _num_train_steps(run) -> int:
+    """Pull `trainer.num_train_steps` from a (nested) wandb run.config."""
+    cfg = run.config
+    for part in ("trainer", "num_train_steps"):
+        if not isinstance(cfg, dict) or part not in cfg:
+            raise RuntimeError(f"{run.name}: trainer.num_train_steps missing in run.config")
+        cfg = cfg[part]
+    return int(cfg)
+
+
 def fetch_run_series(api: wandb.Api, run_name: str) -> dict:
     """Fetch eval/loss and per-trait auprc histories for one run.
 
@@ -97,6 +108,7 @@ def fetch_run_series(api: wandb.Api, run_name: str) -> dict:
     only one series logged.
     """
     run = _resolve(api, run_name)
+    max_gap = DEFAULT_MAX_GAP_FRACTION * _num_train_steps(run)
     auprc_keys = [f"{TRAITGYM_PREFIX}/{t}/auprc" for t, _ in TRAITS]
 
     loss_df = run.history(keys=[LOSS_KEY], samples=10000)
@@ -106,7 +118,8 @@ def fetch_run_series(api: wandb.Api, run_name: str) -> dict:
         if df.empty or col not in df.columns:
             return np.array([]), np.array([])
         sub = df[["_step", col]].dropna().sort_values("_step")
-        return clean(sub["_step"].to_numpy(dtype=float), sub[col].to_numpy(dtype=float))
+        x, y = clean(sub["_step"].to_numpy(dtype=float), sub[col].to_numpy(dtype=float))
+        return dedup_eval_history(x, y, max_gap)
 
     return {
         "loss": _xy(loss_df, LOSS_KEY),
