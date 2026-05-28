@@ -30,14 +30,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
-from typing import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import wandb
-from scipy.interpolate import PchipInterpolator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.pchip_interp import clean as _clean_xy, fit_curve, interp_on_overlap  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIGURES_DIR = ROOT / "figures" / "appendix"
@@ -141,43 +143,11 @@ def _tokens_in_region(steps: np.ndarray, tag: str, region: str, data: dict) -> n
     return np.asarray(steps, dtype=float) * tps * weight
 
 
-# ---------------------------------------------------------------- curve fits
+# ---------------------------------------------------------------- per-panel data extraction
 
 
 def _clean(steps: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    m = np.isfinite(y) & np.isfinite(steps) & (steps > 0)
-    return steps[m].astype(float), y[m].astype(float)
-
-
-def fit_curve(steps_raw: np.ndarray, y_raw: np.ndarray) -> tuple[np.ndarray, np.ndarray, Callable[[np.ndarray], np.ndarray]]:
-    """PCHIP (monotone piecewise-cubic Hermite) interpolator of y vs log10(step).
-
-    PCHIP passes through every data point but never overshoots, so noisy or
-    sigmoid-shaped curves don't get the boundary oscillations a smoothing
-    spline produces. Outside the data range we clamp to the endpoint value.
-    """
-    s, y = _clean(steps_raw, y_raw)
-    if len(s) == 0:
-        raise ValueError("no finite points to fit")
-    if len(s) == 1:
-        y0 = float(y[0])
-        return s, y, lambda x: np.full(np.asarray(x, dtype=float).shape, y0)
-    logx = np.log10(s)
-    pch = PchipInterpolator(logx, y, extrapolate=False)
-    y_lo, y_hi = float(y[0]), float(y[-1])
-    lo, hi = float(logx[0]), float(logx[-1])
-
-    def f(x):
-        xl = np.log10(np.asarray(x, dtype=float))
-        out = pch(xl)
-        out = np.where(np.isnan(out) & (xl < lo), y_lo, out)
-        out = np.where(np.isnan(out) & (xl > hi), y_hi, out)
-        return out
-
-    return s, y, f
-
-
-# ---------------------------------------------------------------- per-panel data extraction
+    return _clean_xy(steps, y)
 
 
 def _x_label(region: str) -> str:
@@ -290,19 +260,6 @@ def plot_raw(data: dict, unpooled_loss_key: str) -> None:
 # ---------------------------------------------------------------- plot 2: matched / interpolated
 
 
-def _interp_on_overlap(x_a: np.ndarray, y_a: np.ndarray, x_b: np.ndarray, y_b: np.ndarray, n_grid: int = 200):
-    if len(x_a) < 2 or len(x_b) < 2:
-        return None, None, None
-    lo = max(float(x_a.min()), float(x_b.min()))
-    hi = min(float(x_a.max()), float(x_b.max()))
-    if not (lo < hi):
-        return None, None, None
-    _, _, fa = fit_curve(x_a, y_a)
-    _, _, fb = fit_curve(x_b, y_b)
-    grid = np.geomspace(lo, hi, n_grid)
-    return grid, fa(grid), fb(grid)
-
-
 def plot_matched(data: dict, unpooled_loss_key: str) -> None:
     n_cols = 3
     n_rows = (len(ALL_TASKS) + n_cols - 1) // n_cols
@@ -314,7 +271,7 @@ def plot_matched(data: dict, unpooled_loss_key: str) -> None:
         ax2 = ax.twinx()
         ser = _panel_series(data, task, unpooled_loss_key)
 
-        gx, y_p, y_u = _interp_on_overlap(*ser["pooled_auprc"], *ser["unpooled_auprc"])
+        gx, y_p, y_u = interp_on_overlap(*ser["pooled_auprc"], *ser["unpooled_auprc"])
         if gx is not None:
             ax.plot(gx, y_p, color=COLORS["pooled"], lw=2.0, zorder=3)
             ax.plot(gx, y_u, color=COLORS["unpooled"], lw=2.0, zorder=3)
@@ -322,7 +279,7 @@ def plot_matched(data: dict, unpooled_loss_key: str) -> None:
             ax.text(0.5, 0.5, "auprc: insufficient overlap", transform=ax.transAxes,
                     ha="center", va="center", color=COLORS["unpooled"], fontsize=9, alpha=0.8)
 
-        gxL, y_pL, y_uL = _interp_on_overlap(*ser["pooled_loss"], *ser["unpooled_loss"])
+        gxL, y_pL, y_uL = interp_on_overlap(*ser["pooled_loss"], *ser["unpooled_loss"])
         if gxL is not None:
             ax2.plot(gxL, y_pL, color=COLORS["pooled"], lw=1.4, ls="--", alpha=0.7, zorder=2)
             ax2.plot(gxL, y_uL, color=COLORS["unpooled"], lw=1.4, ls="--", alpha=0.7, zorder=2)
