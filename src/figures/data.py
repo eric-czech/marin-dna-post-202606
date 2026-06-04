@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "transfer_validation_results.csv"
 SCALING_RESULTS_PATH = ROOT / "data" / "parameter_scaling_results.csv"
 SCALING_HISTORY_PATH = ROOT / "data" / "parameter_scaling_history.csv"
+MIXTURE_RESULTS_PATH = ROOT / "data" / "data_mixture_results.csv"
 FIGURES_DIR = ROOT / "figures"
 
 # Eval VEP sample sizes per variant type (from docs/outline.md). Embedded in
@@ -55,6 +56,12 @@ def load_scaling_results() -> pd.DataFrame:
 def load_scaling_history() -> pd.DataFrame:
     df = pd.read_csv(SCALING_HISTORY_PATH)
     print(f"Loaded {len(df)} rows from {SCALING_HISTORY_PATH}")
+    return df
+
+
+def load_mixture() -> pd.DataFrame:
+    df = pd.read_csv(MIXTURE_RESULTS_PATH)
+    print(f"Loaded {len(df)} rows from {MIXTURE_RESULTS_PATH}")
     return df
 
 

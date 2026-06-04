@@ -38,9 +38,12 @@ TBD
 
  - 1B is on the upper end of model scales with higher VEP monotonicity
  - We continue pretraining on more tokens at that scale with different mixtures
- - These experiments rely on hyper transfer to new token horizons
+   - These experiments rely on hyper transfer to new token horizons
  - Beginning with a checkpoint trained on a uniform mixture, we test shifts in mixture weight to compensate for gaps in specific VEP tasks 
    - We focus on improving promoter and 5' UTR performance by shifting weights to upstream sequences
-   - Show figures/appendix/continuation_mix_shift.svg
-   - 
-- 
+   - Show Figure 7
+  - Improvements from deviating off of uniform mixtures are minimal
+- For this reason, we continue pretraining on animal data while preparing enhancer data 
+  - Training continues to ~104B tokens before mixing in new data
+  - After just ~20B tokens, performance improves drastically on distal tasks
+- Our net result is a PoC for a 1B model on par and slightly better than Evo 2 40B after training on just 1.3% as many tokens (123B vs 9.3T)

@@ -34,6 +34,16 @@ TRANSFER_VERSIONS = ("v0.14", "v0.15")
 SCALING_VERSION = "v0.5"
 SCALING_EXPECTED_MODELS = 8
 
+MIXTURE_VERSION = "v0.9"
+# Warm-started from an external (param-scaling) run rather than anything in this
+# sweep, so it has no in-sweep lineage — excluded from the mixture tree/CSV.
+MIXTURE_EXCLUDE: frozenset[str] = frozenset({"cont_ps_up_down_1"})
+# Non-finished runs kept as an exception: cds_only crashed at ~70% but logged its
+# final-eligible evals, and it's the only C-only baseline. Its token count is
+# scaled by run_progress downstream (see figures/appendix/mixture_tree.py) since
+# it never completed training.
+MIXTURE_INCLUDE_UNFINISHED: frozenset[str] = frozenset({"cds_only"})
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 
@@ -304,6 +314,59 @@ def fetch_parameter_scaling_history(api) -> pd.DataFrame:
     return out.sort_values(["run_name", "metric", "step"]).reset_index(drop=True)
 
 
+def _tag_str(tags: list[str], key: str, run_name: str) -> str:
+    prefix = f"{key}="
+    matches = [t[len(prefix):] for t in tags if t.startswith(prefix)]
+    if not matches:
+        raise KeyError(f"run {run_name!r}: tag {prefix}... not found in {tags}")
+    if len(matches) > 1:
+        raise ValueError(f"run {run_name!r}: multiple {prefix}... tags: {matches}")
+    return matches[0]
+
+
+def fetch_mixture(api) -> pd.DataFrame:
+    """Final-only rows for the v0.9 mixture sweep (one row per finished run).
+
+    `params`/`tokens` come from tags (`tokens` is the run's *own* new-portion token
+    count); the lineage / mixture weights / cumulative token accounting live in
+    `src/figures/mixture_lineage.py`, keyed by the `mix` column here. All metrics
+    are final (run.summary); the sweep has no history needs. Only `state ==
+    "finished"` runs are kept (matches the figure's finished-only scope), and the
+    external-warm-start run in `MIXTURE_EXCLUDE` is dropped.
+    """
+    print(f"Fetching mixture-sweep runs from {WANDB_PROJECT} ...")
+    prefix = f"dna-bolinas-mix-{MIXTURE_VERSION}-"
+    runs = list(
+        api.runs(WANDB_PROJECT, filters={"display_name": {"$regex": f"^{re.escape(prefix)}"}})
+    )
+    rows: list[dict] = []
+    for run in runs:
+        mix = _tag_str(run.tags, "mix", run.name)
+        if mix in MIXTURE_EXCLUDE:
+            continue
+        if run.state != "finished" and mix not in MIXTURE_INCLUDE_UNFINISHED:
+            continue
+        row = _base_row(run, MIXTURE_VERSION)
+        row["mix"] = mix
+        for key in LM_EVAL_KEYS:
+            row[key] = _summary_float(run.summary, key)
+        rows.append(row)
+    print(f"  kept {len(rows)} runs (matched {len(runs)})")
+    df = pd.DataFrame.from_records(rows)
+    df["tflops"] = df["tflops"].astype("Int64")
+    cols = [
+        "run_name", "mix", "version", "state", "run_progress",
+        "hidden_size", "params", "tokens", "tflops",
+        "batch_size", "num_train_steps", "train_seq_len",
+        "learning_rate", "adam_lr", "beta1", "beta2", "epsilon",
+        "max_grad_norm", "z_loss_weight", "initializer_range",
+        "eval_loss", "eval_loss_cds", "eval_loss_upstream", "eval_loss_downstream",
+        *LM_EVAL_KEYS,
+    ]
+    df = df[cols].sort_values("mix").reset_index(drop=True)
+    return df
+
+
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     api = wandb.Api(timeout=300)
@@ -322,6 +385,11 @@ def main() -> None:
     history_path = DATA_DIR / "parameter_scaling_history.csv"
     history_df.to_csv(history_path, index=False)
     print(f"Wrote {len(history_df)} rows to {history_path}")
+
+    mixture_df = fetch_mixture(api)
+    mixture_path = DATA_DIR / "data_mixture_results.csv"
+    mixture_df.to_csv(mixture_path, index=False)
+    print(f"Wrote {len(mixture_df)} rows to {mixture_path}")
 
 
 if __name__ == "__main__":
