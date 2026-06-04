@@ -38,11 +38,11 @@ import numpy as np
 import pandas as pd
 import wandb
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.pchip_interp import clean as _clean_xy, fit_curve, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 FIGURES_DIR = ROOT / "figures" / "appendix"
 
 WANDB_PROJECT = "eric-czech/marin"

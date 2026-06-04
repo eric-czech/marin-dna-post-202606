@@ -39,12 +39,12 @@ import pandas as pd
 import wandb
 from scipy.stats import spearmanr
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 DATA_PATH = ROOT / "data" / "parameter_scaling_results.csv"
 FIGURES_DIR = ROOT / "figures" / "appendix"
 

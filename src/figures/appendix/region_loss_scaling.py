@@ -21,10 +21,10 @@ import numpy as np
 import wandb
 from scipy.optimize import curve_fit
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.savefig import save_figure  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 FIGURES_DIR = ROOT / "figures" / "appendix"
 
 WANDB_PROJECT = "eric-czech/marin"
