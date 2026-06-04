@@ -40,6 +40,7 @@ import wandb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.pchip_interp import clean as _clean_xy, fit_curve, interp_on_overlap  # noqa: E402
+from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIGURES_DIR = ROOT / "figures" / "appendix"
@@ -207,13 +208,7 @@ def _shared_legend(fig) -> None:
 
 
 def _save(fig, name: str) -> None:
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    png = FIGURES_DIR / f"{name}.png"
-    pdf = FIGURES_DIR / f"{name}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"saved {png}")
-    print(f"saved {pdf}")
+    save_figure(fig, FIGURES_DIR, name)
 
 
 # ---------------------------------------------------------------- plot 1: raw scatter

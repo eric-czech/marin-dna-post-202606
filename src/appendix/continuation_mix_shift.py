@@ -26,11 +26,15 @@ Usage:
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIGURES_DIR = ROOT / "figures" / "appendix"
@@ -107,13 +111,7 @@ def fetch_data() -> dict:
 
 
 def _save(fig, name: str) -> None:
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    png = FIGURES_DIR / f"{name}.png"
-    pdf = FIGURES_DIR / f"{name}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"saved {png}")
-    print(f"saved {pdf}")
+    save_figure(fig, FIGURES_DIR, name)
 
 
 def plot(data: dict) -> None:
@@ -156,7 +154,7 @@ def plot(data: dict) -> None:
     ax_cons.set_ylabel(r"$\Delta$ auprc (end − begin)")
     ax_cons.set_title("Per-metric", fontsize=11)
     ax_cons.grid(True, alpha=0.25, linewidth=0.5)
-    ax_cons.legend(loc="best", fontsize=8, frameon=True, ncol=2, title="metric", title_fontsize=8)
+    ax_cons.legend(loc="best", fontsize=8, frameon=False, ncol=2, title="metric", title_fontsize=8)
 
     for ax in (ax_comp, ax_cons):
         ax.set_xticks(xs_sorted)

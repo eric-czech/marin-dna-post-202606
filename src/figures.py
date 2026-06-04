@@ -26,6 +26,8 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.transforms import blended_transform_factory
 
+from utils.savefig import save_figure
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "transfer_validation_results.csv"
 SCALING_RESULTS_PATH = ROOT / "data" / "parameter_scaling_results.csv"
@@ -230,7 +232,7 @@ def _params_legend_handles(palette: dict, params: list[int]):
 _LEGEND_KW = dict(
     fontsize=9,
     title_fontsize=9,
-    frameon=True,
+    frameon=False,
     handletextpad=0.3,
     columnspacing=2.2,
     borderpad=0.4,
@@ -281,12 +283,7 @@ def _attach_legends_below(
 
 
 def _save(fig, name: str) -> None:
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    png = FIGURES_DIR / f"{name}.png"
-    pdf = FIGURES_DIR / f"{name}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"Wrote {png} and {pdf}")
+    save_figure(fig, FIGURES_DIR, name)
 
 
 def figure1_lr(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
@@ -468,7 +465,7 @@ def figure5_params_vs_auprc(results: pd.DataFrame) -> None:
         ax.set_xscale("log")
         ax.set_title(group_title, fontsize=10)
         ax.grid(False)
-        ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=True, handletextpad=0.4)
+        ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=False, handletextpad=0.4)
     axes[0].set_ylabel("AUPRC")
     # x-label only on the middle panel.
     axes[1].set_xlabel("model params", labelpad=_X_LABEL_PAD)
@@ -718,7 +715,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         inset_bounds[2], inset_bounds[3],
         boxstyle="round,pad=0,rounding_size=0.025",
         transform=parent_ax.transAxes,
-        facecolor="white",
+        facecolor="none",
         edgecolor="black",
         linewidth=0.2,
         zorder=0,

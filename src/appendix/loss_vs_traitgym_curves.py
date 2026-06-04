@@ -41,6 +41,7 @@ from scipy.ndimage import gaussian_filter1d
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
 from utils.pchip_interp import clean  # noqa: E402
+from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_PATH = ROOT / "data" / "parameter_scaling_results.csv"
@@ -125,13 +126,7 @@ def fetch_all() -> dict[str, dict[str, tuple[np.ndarray, np.ndarray]]]:
 
 
 def _save(fig, name: str) -> None:
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    png = FIGURES_DIR / f"{name}.png"
-    pdf = FIGURES_DIR / f"{name}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"saved {png}")
-    print(f"saved {pdf}")
+    save_figure(fig, FIGURES_DIR, name)
 
 
 def _fmt_step(x: float, _pos) -> str:
@@ -203,7 +198,7 @@ def plot(data: dict) -> None:
     fig.legend(
         handles=handles,
         loc="upper center", bbox_to_anchor=(0.5, 0.10),
-        ncol=len(handles), frameon=True,
+        ncol=len(handles), frameon=False,
         title="variant type", title_fontsize=9, fontsize=9,
         handletextpad=0.4, columnspacing=2.2, borderpad=0.4,
     )

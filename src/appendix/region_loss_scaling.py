@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import re
+import sys
 import warnings
 from pathlib import Path
 
@@ -19,6 +20,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import wandb
 from scipy.optimize import curve_fit
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from utils.savefig import save_figure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIGURES_DIR = ROOT / "figures" / "appendix"
@@ -83,13 +87,7 @@ def fit_kaplan(P: np.ndarray, L: np.ndarray) -> tuple[float, float, float]:
 
 
 def _save(fig, name: str) -> None:
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    png = FIGURES_DIR / f"{name}.png"
-    pdf = FIGURES_DIR / f"{name}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
-    print(f"saved {png}")
-    print(f"saved {pdf}")
+    save_figure(fig, FIGURES_DIR, name)
 
 
 def main() -> None:
@@ -116,7 +114,7 @@ def main() -> None:
     ax.set_ylabel("eval/val_<region>/loss")
     ax.set_title("Per-region Kaplan scaling fit (parameter scaling sweep, v0.5)")
     ax.grid(True, which="both", alpha=0.25, linewidth=0.5)
-    ax.legend(loc="upper right", fontsize=9, frameon=True)
+    ax.legend(loc="upper right", fontsize=9, frameon=False)
     fig.tight_layout()
     _save(fig, "region_loss_scaling")
 
