@@ -105,6 +105,28 @@ consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 | 1B           | 26 |  6.84e+19 |    1.78e+21 |
 
 
+### Best model (mixture sweep)
+
+Best-performing model overall: `1.7.2·L` = W&B run
+`dna-bolinas-mix-v0.9-p1B-i24-exp135-zoonomia-m5.1`
+(uniform → uniform_to_uniform_1 → zoonomia 1/5 mix; warm-started from the
+fully-cooled uniform_to_uniform_1 checkpoint).
+
+Cumulative token lineage — own new-portion tokens per stage; pre-cooldown
+branches contribute 80% of the parent's own tokens, final-checkpoint branches 100%:
+
+| stage   | run                  |     own tokens | contributes                        |
+| ------- | -------------------- | -------------: | ---------------------------------- |
+| 1·L     | uniform              | 52,439,285,760 | ×0.8 (pre-cooldown) → 41,951,428,608 |
+| 1.7·L   | uniform_to_uniform_1 | 62,033,756,160 | ×1.0 (final) → 62,033,756,160        |
+| 1.7.2·L | exp135-zoonomia-m5.1 | 62,033,756,160 | own                                |
+| **Total** |                    |                | **166,018,940,928**                |
+
+- FLOPs/token: **6.836797e+09** (from 1·L: 3.58516774639396e20 FLOPs / 52,439,285,760 tokens)
+- Cumulative tokens: **166,018,940,928**
+- Cumulative training FLOPs: **1.135038e+21** (≈1.14e21)
+- vs Evo2 40B (9.3T tok, 2.25e24 FLOPs; [C.1. Model training FLOPS comparison](https://www.nature.com/articles/s41586-026-10176-5)): Evo2 = **~56× our tokens, ~1,980× our FLOPs**; i.e. we used **~1/56 the tokens (~1.8%)** and **~1/1,980 the FLOPs (~0.05%)**
+
 ### Details
 
 - In training, nucleotides in repeats are downweighted by a factor of 100 from 1 to .01
