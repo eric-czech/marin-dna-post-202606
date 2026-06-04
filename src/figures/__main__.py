@@ -23,6 +23,7 @@ from figures.figure4_loss_scaling import build as figure4  # noqa: E402
 from figures.figure5_params_vs_vep_auprc import build as figure5  # noqa: E402
 from figures.figure6_loss_vs_vep_auprc import build as figure6  # noqa: E402
 from figures.figure7_upstream_mix_auprc import build as figure7  # noqa: E402
+from figures.figure8_leaderboard_heatmap import build as figure8  # noqa: E402
 from utils.figure_style import palette  # noqa: E402
 
 
@@ -31,6 +32,7 @@ def main() -> None:
     scaling_results = data.load_scaling_results()
     scaling_history = data.load_scaling_history()
     mixture_df = data.load_mixture()
+    leaderboard_df = data.load_leaderboard()
 
     # Per-sweep palettes so each figure's colors span the full viridis range.
     # Sharing a single palette across both compresses the transfer scales (only 3
@@ -47,6 +49,7 @@ def main() -> None:
     figure5(scaling_results)
     figure6(scaling_results, scaling_palette)
     figure7(mixture_df)
+    figure8(leaderboard_df)
 
 
 if __name__ == "__main__":

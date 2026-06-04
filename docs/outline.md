@@ -47,3 +47,4 @@ TBD
   - Training continues to ~104B tokens before mixing in new data
   - After ~62B tokens, performance improves drastically on distal tasks
 - Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24)
+  - Show Figure 8

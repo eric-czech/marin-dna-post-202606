@@ -16,6 +16,7 @@ SCALING_RESULTS_PATH = ROOT / "data" / "parameter_scaling_results.csv"
 SCALING_HISTORY_PATH = ROOT / "data" / "parameter_scaling_history.csv"
 MIXTURE_RESULTS_PATH = ROOT / "data" / "data_mixture_results.csv"
 MIXTURE_HISTORY_PATH = ROOT / "data" / "data_mixture_history.csv"
+MODEL_LEADERBOARD_PATH = ROOT / "data" / "model_leaderboard.csv"
 FIGURES_DIR = ROOT / "figures"
 
 # Eval VEP sample sizes per variant type (from docs/outline.md). Embedded in
@@ -69,6 +70,13 @@ def load_mixture() -> pd.DataFrame:
 def load_mixture_history() -> pd.DataFrame:
     df = pd.read_csv(MIXTURE_HISTORY_PATH)
     print(f"Loaded {len(df)} rows from {MIXTURE_HISTORY_PATH}")
+    return df
+
+
+def load_leaderboard() -> pd.DataFrame:
+    # First line is a provenance comment; the header is on line 2.
+    df = pd.read_csv(MODEL_LEADERBOARD_PATH, skiprows=1)
+    print(f"Loaded {len(df)} rows from {MODEL_LEADERBOARD_PATH}")
     return df
 
 
