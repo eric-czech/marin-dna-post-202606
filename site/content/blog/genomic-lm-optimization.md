@@ -55,12 +55,14 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 ## Introduction
 
 - This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs.
-- This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is possible.
+- This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is at least possible.
 
 ## Hyperparameter Transfer
 
 - Cite the Delphi post.
 - Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.
+  - The proportional mix avoids conflation with epoching effects — each region is cycled only once.
+  - We do not yet have a mature, data-constrained hyperparameter-transfer framework.
 - Reference Vizier sweep: ~25M params, 2.5B tokens, 16k batch (~4e17 FLOPs/run).
 - Transfer validation: 10B tokens, 4k batch (~6.8e19 FLOPs/run); 76 runs across the 255M / 476M / 1B scales (~2.9e21 FLOPs total).
 
@@ -122,20 +124,28 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ## Mixture Experiments
 
-- 1B is on the upper end of model scales with higher VEP monotonicity.
-- We continue pretraining on more tokens at that scale with different mixtures.
-  - These experiments rely on hyperparameter transfer to new token horizons.
-- Beginning with a checkpoint trained on a uniform mixture, we test shifts in mixture weight to compensate for gaps in specific VEP tasks.
-  - We focus on improving promoter and 5' UTR performance by shifting weights to upstream sequences.
+- To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.
+  - Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).
+- This still relies on two key results from the parameter-scaling sweep:
+  - Hyperparameter-transfer scaling heuristics, to configure runs with very different token horizons.
+  - A 1B target scale — the largest model that still exhibited high VEP monotonicity.
+- We begin by training at 1B params on a uniform mixture of the same 3-region animal sequences used previously.
+  - By ~50B tokens, this saturated on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone.
+  - We then test shifts in mixture weights to see whether upstream task performance can be improved without sacrificing the others.
 
 ![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure7_upstream_mix_auprc.svg)
 
 **Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
 
-- Improvements from deviating off of uniform mixtures are minimal.
-- For this reason, we continue pretraining on animal data while preparing mammalian enhancer data.
-  - Training continues to ~104B tokens before mixing in new data.
-  - After ~62B tokens, performance improves drastically on distal tasks.
+- Upstream task gains are easily undone by performance lost on other tasks.
+  - Similar experiments starting from upstream-only models or proportionally-weighted checkpoints likewise yielded no clear net wins.
+- Conclusion: improving zero-shot performance mid-flight is **not** really possible by re-weighting **existing** mixture components.
+- As an alternative, we instead mix in new, distal sequence data — largely mammalian enhancer sequences — with uniform weighting.
+  - This expands the mixture pool from 3 genomic regions (CDS, upstream, downstream) to 5 (+ ncRNA exons and enhancers).
+  - Surprisingly, this improves upstream task performance significantly (promoter VEP 30% → 40%) and very drastically improves distal task performance (ncRNA exon variants 19% → 65%, enhancer variants 14% → 33%), while mostly holding performance on other tasks fixed.
+  - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).
+    - This outperforms de novo training on the 5-region mixture.
+- Conclusion: improving zero-shot performance mid-flight **is** possible by adding **new**, uniformly-weighted mixture components.
 
 ## Conclusion
 

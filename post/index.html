@@ -118,12 +118,16 @@
 <h2>Introduction</h2>
 <ul>
 <li>This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs.</li>
-<li>This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is possible.</li>
+<li>This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is at least possible.</li>
 </ul>
 <h2>Hyperparameter Transfer</h2>
 <ul>
 <li>Cite the Delphi post.</li>
-<li>Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.</li>
+<li>Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.<ul>
+<li>The proportional mix avoids conflation with epoching effects — each region is cycled only once.</li>
+<li>We do not yet have a mature, data-constrained hyperparameter-transfer framework.</li>
+</ul>
+</li>
 <li>Reference Vizier sweep: ~25M params, 2.5B tokens, 16k batch (~4e17 FLOPs/run).</li>
 <li>Transfer validation: 10B tokens, 4k batch (~6.8e19 FLOPs/run); 76 runs across the 255M / 476M / 1B scales (~2.9e21 FLOPs total).</li>
 </ul>
@@ -9926,13 +9930,18 @@ z
 <figcaption><strong>Figure 8:</strong> Loss vs VEP AUPRC correlation within model-size ranges.</figcaption></figure>
 <h2>Mixture Experiments</h2>
 <ul>
-<li>1B is on the upper end of model scales with higher VEP monotonicity.</li>
-<li>We continue pretraining on more tokens at that scale with different mixtures.<ul>
-<li>These experiments rely on hyperparameter transfer to new token horizons.</li>
+<li>To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.<ul>
+<li>Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).</li>
 </ul>
 </li>
-<li>Beginning with a checkpoint trained on a uniform mixture, we test shifts in mixture weight to compensate for gaps in specific VEP tasks.<ul>
-<li>We focus on improving promoter and 5' UTR performance by shifting weights to upstream sequences.</li>
+<li>This still relies on two key results from the parameter-scaling sweep:<ul>
+<li>Hyperparameter-transfer scaling heuristics, to configure runs with very different token horizons.</li>
+<li>A 1B target scale — the largest model that still exhibited high VEP monotonicity.</li>
+</ul>
+</li>
+<li>We begin by training at 1B params on a uniform mixture of the same 3-region animal sequences used previously.<ul>
+<li>By ~50B tokens, this saturated on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone.</li>
+<li>We then test shifts in mixture weights to see whether upstream task performance can be improved without sacrificing the others.</li>
 </ul>
 </li>
 </ul>
@@ -10193,12 +10202,21 @@ z
 </svg>
 <figcaption><strong>Figure 9:</strong> Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).</figcaption></figure>
 <ul>
-<li>Improvements from deviating off of uniform mixtures are minimal.</li>
-<li>For this reason, we continue pretraining on animal data while preparing mammalian enhancer data.<ul>
-<li>Training continues to ~104B tokens before mixing in new data.</li>
-<li>After ~62B tokens, performance improves drastically on distal tasks.</li>
+<li>Upstream task gains are easily undone by performance lost on other tasks.<ul>
+<li>Similar experiments starting from upstream-only models or proportionally-weighted checkpoints likewise yielded no clear net wins.</li>
 </ul>
 </li>
+<li>Conclusion: improving zero-shot performance mid-flight is <strong>not</strong> really possible by re-weighting <strong>existing</strong> mixture components.</li>
+<li>As an alternative, we instead mix in new, distal sequence data — largely mammalian enhancer sequences — with uniform weighting.<ul>
+<li>This expands the mixture pool from 3 genomic regions (CDS, upstream, downstream) to 5 (+ ncRNA exons and enhancers).</li>
+<li>Surprisingly, this improves upstream task performance significantly (promoter VEP 30% → 40%) and very drastically improves distal task performance (ncRNA exon variants 19% → 65%, enhancer variants 14% → 33%), while mostly holding performance on other tasks fixed.</li>
+<li>Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).<ul>
+<li>This outperforms de novo training on the 5-region mixture.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Conclusion: improving zero-shot performance mid-flight <strong>is</strong> possible by adding <strong>new</strong>, uniformly-weighted mixture components.</li>
 </ul>
 <h2>Conclusion</h2>
 <ul>
