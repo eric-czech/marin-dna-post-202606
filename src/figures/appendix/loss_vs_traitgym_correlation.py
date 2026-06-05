@@ -233,7 +233,8 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
         hi = max(0.0, float(finite_vals.max()))
         span = hi - lo if hi > lo else 1.0
         left = lo - 0.15 * span if lo < 0 else 0.0
-        right = hi + 0.15 * span if hi > 0 else 0.0
+        # Extra room on the right so the value labels clear the right border.
+        right = hi + 0.30 * span if hi > 0 else 0.0
         ax_bar.set_xlim(left, right)
         pad = 0.02 * span
     else:
@@ -259,6 +260,13 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
     ax_hm.set_xticklabels(col_labels, rotation=30, ha="right", fontsize=9)
     ax_hm.set_yticks(np.arange(len(row_labels)))
     ax_hm.set_yticklabels([])  # labels live on the bar chart, don't repeat
+    # Full box border around the heatmap, matching the bar chart's axis lines.
+    for spine in ax_hm.spines.values():
+        spine.set(
+            visible=True,
+            linewidth=_bottom.get_linewidth(),
+            edgecolor=_bottom.get_edgecolor(),
+        )
     # Cell annotations.
     for i in range(M.shape[0]):
         for j in range(M.shape[1]):
@@ -277,7 +285,7 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
         "Parameter scaling — loss vs VEP AUPRC correlation across training steps",
         fontsize=11, y=0.965,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.tight_layout(rect=(0, 0, 1, 0.915))
     _save(fig, "loss_vs_traitgym_correlation")
 
 

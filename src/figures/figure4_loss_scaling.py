@@ -179,7 +179,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     fig.tight_layout(rect=(0, 0.08, 1, 0.90))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
-    attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
+    attach_params_legend_below(fig, palette, params_present, width_scale=0.3)
     save(fig, "figure4_loss_scaling")
 
 
@@ -200,7 +200,8 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
-    inset_bounds = (0.10, 0.17, 0.27, 0.46)
+    # Keep the bottom (y0) where it is; shrink only the height (top comes down).
+    inset_bounds = (0.10, 0.17, 0.27, 0.35)
     inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
 
     # Replace the default rectangular background/spines with a rounded FancyBboxPatch

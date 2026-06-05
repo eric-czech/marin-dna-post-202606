@@ -49,7 +49,8 @@ def build(results: pd.DataFrame) -> None:
         # pushed flush to the right axis limit; the other facets keep top-left.
         if group_title == "CDS":
             ax.legend(handles, labels, loc="lower right", bbox_to_anchor=(1.0, 0.0),
-                      borderaxespad=0.0, fontsize=8, frameon=False, handletextpad=0.4)
+                      borderaxespad=0.0, borderpad=0.0,
+                      fontsize=8, frameon=False, handletextpad=0.4)
         else:
             ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=False, handletextpad=0.4)
     axes[0].set_ylabel("AUPRC")
