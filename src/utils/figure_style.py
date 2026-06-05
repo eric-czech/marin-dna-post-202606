@@ -1,6 +1,6 @@
 """Shared presentation helpers for the figure set.
 
-Figure dimensions, the viridis param palette, value formatters, the
+Figure dimensions, the earthy param palette, value formatters, the
 below-axes legend strips, and tick formatting — everything that controls how
 the figures *look* but not what data they show.
 """
@@ -8,6 +8,7 @@ the figures *look* but not what data they show.
 from __future__ import annotations
 
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.lines import Line2D
 from matplotlib.ticker import ScalarFormatter
 import matplotlib.pyplot as plt
@@ -15,6 +16,24 @@ import matplotlib.pyplot as plt
 # Constant width across all figures so they line up in any side-by-side rendering.
 FIGURE_WIDTH = 12.0
 FIGURE_HEIGHT = 5.0
+
+# Warm, earthy palette tuned to the page theme (tan/brown). Replaces viridis,
+# whose purples and greens clash with the warm background. A muted teal -> rust
+# ramp: reads as earthy, holds good contrast on the #ece3d5 figure panels, and
+# stays distinguishable across up to 8 ordered model-size classes.
+PARAM_CMAP = LinearSegmentedColormap.from_list(
+    "earth", ["#23403f", "#3f6b5e", "#7e8a45", "#b3823f", "#9c4f2f"]
+)
+
+# Warm single-hue sequential (cream -> espresso) for magnitude heatmaps — same
+# family as PARAM_CMAP so the figure set stays visually consistent.
+HEATMAP_CMAP = LinearSegmentedColormap.from_list(
+    "earth_seq", ["#f4ecda", "#e2c089", "#c79150", "#9c6234", "#5e3418"]
+)
+
+# One strong earthy accent (terracotta) for single-series figures, drawn from
+# the warm end of PARAM_CMAP.
+SERIES_COLOR = "#9c4f2f"
 
 # Top of the legend boxes in figure coordinates. Tuned so the legends sit just
 # below the x-axis tick labels, not at the bottom of the figure.
@@ -35,7 +54,7 @@ LEGEND_KW = dict(
 
 
 def palette(param_counts: list[int]) -> dict[int, tuple]:
-    cmap = plt.get_cmap("viridis")
+    cmap = PARAM_CMAP
     if len(param_counts) == 1:
         return {param_counts[0]: cmap(0.5)}
     return {p: cmap(0.15 + 0.7 * i / (len(param_counts) - 1)) for i, p in enumerate(param_counts)}
