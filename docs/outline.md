@@ -3,7 +3,8 @@ Description: How Marin can be used to train single-sequence, vanilla Transfer gL
 
 ## Introduction
 
-TBD
+- This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs
+- This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is possible
 
 ## Hyperparameter Transfer
 
@@ -21,20 +22,20 @@ TBD
 
 ## Parameter Scaling
 
-- Show Figure 4
-  - 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep)
+- 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep)
+  - Show Figure 4
 - Loss scaling is smooth and fits to standard Kaplan laws well
 
 ## Downstream Performance
 
-- Show Figure 5
-  - As expected, parameter scaling does yield monotonic improvements
-- Show Figure 6
-  - Loss correlation is weak
-- Show figures/appendix/loss_vs_traitgym_curves.svg
-  - Notably, VEP performance degrades at the largest model scales with more tokens
-- Show figures/appendix/loss_vs_traitgym_correlation.svg
-  - However, we can see that VEP performance scales more monotonically within a range of model sizes
+- As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning and scaling law results
+  - Show Figure 5
+- Loss correlation is weak
+  - Show Figure 6
+- Notably, VEP performance degrades at the largest model scales with more tokens
+  - Show figures/appendix/loss_vs_traitgym_curves.svg
+- However, we can see that VEP performance scales more monotonically within a range of model sizes
+  - Show figures/appendix/loss_vs_traitgym_correlation.svg
 
  ## Mixture Experiments
 

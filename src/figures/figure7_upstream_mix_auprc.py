@@ -39,7 +39,11 @@ def build(df: pd.DataFrame) -> None:
     xs = [p[0] for p in pts]
     ys = [p[1] for p in pts]
 
-    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH * 0.7, 3.9))
+    # Author at full FIGURE_WIDTH like every other figure so the post (which
+    # displays all figures at one column width) doesn't upscale this one and
+    # blow up its label text. Height is kept short for a single trend line —
+    # a wide, low aspect that doesn't look oversized next to the other figures.
+    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH, 4.0))
     ax.axhline(score[BASELINE], color="0.4", lw=1.0, ls=":", zorder=1)
     ax.text(
         max(xs), score[BASELINE], "baseline (step=0)  ",

@@ -76,10 +76,29 @@
       </details>
     </aside>
     <div class="blog-post-content project-detail-body">
-      <p><em>Draft — this post tracks <code>docs/outline.md</code> and embeds the current figures. Prose is intentionally skeletal pending a full write-up.</em></p>
+      <style>
+.blog-post-content figure img {
+  background: #ece3d5;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(31, 30, 27, 0.10);
+}
+/* Nested lists inherit ul's 1rem margin-bottom, which stacks with the parent
+   <li>'s margin to leave an oversized gap before the next top-level bullet.
+   Zero it so nested bullets sit flush with the following item. */
+.blog-post-content li > ul,
+.blog-post-content li > ol {
+  margin-bottom: 0;
+}
+</style>
+
+<p><em>Draft — prose is intentionally skeletal pending a full write-up.</em></p>
 <p>How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers hyperparameter transfer, scaling-law, and training-mixture experiments.</p>
 <h2>Introduction</h2>
-<p><em>TBD.</em></p>
+<ul>
+<li>This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs.</li>
+<li>This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is possible.</li>
+</ul>
 <h2>Hyperparameter Transfer</h2>
 <ul>
 <li>Cite the Delphi post.</li>
@@ -95,29 +114,37 @@
 </ul>
 </li>
 </ul>
+<details>
+<summary>Transfer validation by region (Figure 3)</summary>
+
 <figure><img src="assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" /><figcaption><strong>Figure 3:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption></figure>
+</details>
+
 <h2>Parameter Scaling</h2>
-<figure><img src="assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" /><figcaption><strong>Figure 4:</strong> Loss scaling across 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep), with Kaplan power-law fits.</figcaption></figure>
+<ul>
+<li>8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep).</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" /><figcaption><strong>Figure 4:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.</figcaption></figure>
 <ul>
 <li>Loss scaling is smooth and fits standard Kaplan laws well.</li>
 </ul>
 <h2>Downstream Performance</h2>
-<figure><img src="assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" /><figcaption><strong>Figure 5:</strong> Composite VEP AUPRC vs parameter count.</figcaption></figure>
 <ul>
-<li>As expected, parameter scaling yields monotonic improvements.</li>
+<li>As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.</li>
 </ul>
-<figure><img src="assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" /><figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" /><figcaption><strong>Figure 5:</strong> Composite VEP AUPRC vs parameter count.</figcaption></figure>
 <ul>
 <li>The loss correlation is weak.</li>
 </ul>
-<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" /><figcaption><strong>Figure A1:</strong> VEP AUPRC training curves by model scale (appendix).</figcaption></figure>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" /><figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
 <ul>
 <li>Notably, VEP performance degrades at the largest model scales with more tokens.</li>
 </ul>
-<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" /><figcaption><strong>Figure A2:</strong> Loss vs VEP AUPRC correlation within model-size ranges (appendix).</figcaption></figure>
+<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" /><figcaption><strong>Figure A1:</strong> VEP AUPRC training curves by model scale (appendix).</figcaption></figure>
 <ul>
 <li>However, VEP performance scales more monotonically within a range of model sizes.</li>
 </ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" /><figcaption><strong>Figure A2:</strong> Loss vs VEP AUPRC correlation within model-size ranges (appendix).</figcaption></figure>
 <h2>Mixture Experiments</h2>
 <ul>
 <li>1B is on the upper end of model scales with higher VEP monotonicity.</li>
@@ -140,9 +167,11 @@
 </li>
 </ul>
 <h2>Conclusion</h2>
-<figure><img src="assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" /><figcaption><strong>Figure 8:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.</figcaption></figure>
 <ul>
 <li>Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" /><figcaption><strong>Figure 8:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.</figcaption></figure>
+<ul>
 <li>This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.<ul>
 <li>Many less successful attempts are not mentioned here but are documented at <a href="https://github.com/Open-Athena/marin-dna">Open-Athena/marin-dna</a>.</li>
 </ul>
