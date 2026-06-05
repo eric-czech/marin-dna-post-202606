@@ -36,7 +36,7 @@ INK = "#1f1e1b"
 # to the canvas) so the labels render at a size comparable to the body copy,
 # while every figure's aspect ratio and tuned layout are preserved. Applied in
 # utils.savefig. 1.0 = no change; smaller = larger on-page text.
-WEB_SCALE = 0.58
+WEB_SCALE = 0.9
 
 mpl.rcParams.update(
     {
