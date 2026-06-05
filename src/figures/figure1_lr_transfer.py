@@ -29,7 +29,10 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         ax, df,
         axis_role="learning_rate",
         axis_field="learning_rate",
-        axis_label=r"learning rate ($\eta$)",
+        # Plain text (no Greek symbol) so the whole label renders in the page
+        # font, matching the y-axis/legend labels — any mathtext/symbol segment
+        # forces the label into DejaVu, which renders at a different size.
+        axis_label="learning rate",
         log_scale=True,
         value_formatter=fmt_lr,
         palette=palette,

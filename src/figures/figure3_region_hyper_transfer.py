@@ -74,5 +74,5 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     # Explicit margins (no tight_layout) so the title and legend hug the plot grid tightly.
     fig.subplots_adjust(top=0.9525, bottom=0.1225, left=0.055, right=0.99, hspace=0.12, wspace=0.18)
     # Centered, tightly-spaced two-legend strip at the bottom (shared helper).
-    attach_legends_below(fig, palette, params, include_reference=False, legend_y=0.0475)
+    attach_legends_below(fig, palette, params, include_reference=False, legend_y=0.03)
     save(fig, "figure3_region_hyper_transfer")
