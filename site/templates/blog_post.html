@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Open Athena | {{ post.title }}{% endblock %}
+{% block body_class %}page-blog-post{% if post.toc %} has-toc{% endif %}{% endblock %}
+
+{% block content %}
+<section class="blog-post">
+  <div class="blog-post-header">
+    <h1 class="project-detail-title">{{ post.title }}</h1>
+    <div class="blog-post-meta">
+      <span>{{ post.date.strftime('%B %-d, %Y') }}</span>
+      <span>·</span>
+      <span>{{ post.author }}</span>
+      {% if post.tags %}
+      <span>·</span>
+      {% for tag in post.tags %}
+      <div class="resource-type-tag">{{ tag | upper }}</div>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  {% if post.toc %}
+  <div class="blog-post-body">
+    <aside class="blog-toc">
+      <nav class="blog-toc-nav">
+        <div class="blog-toc-title">Contents</div>
+        <ol class="blog-toc-list"></ol>
+      </nav>
+      <details class="blog-toc-mobile">
+        <summary class="blog-toc-title">Contents</summary>
+        <ol class="blog-toc-list"></ol>
+      </details>
+    </aside>
+    <div class="blog-post-content project-detail-body">
+      {{ post.body }}
+      {% include "_citation.html" %}
+    </div>
+  </div>
+  {% else %}
+  <div class="blog-post-content project-detail-body">
+    {{ post.body }}
+    {% include "_citation.html" %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if post.math %}
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$']],
+    displayMath: [['$$', '$$']]
+  },
+  output: {
+    displayOverflow: 'linebreak',
+    linebreaks: { inline: true }
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+{% endif %}
+<script>
+(function() {
+  // Footnote hover previews. Skip on touch-only devices — clicking still jumps.
+  if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+
+  var refs = document.querySelectorAll('sup.footnote-ref a');
+  if (!refs.length) return;
+
+  var tooltip = document.createElement('div');
+  tooltip.className = 'fn-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+
+  var showTimer, hideTimer, current;
+
+  function contentFor(targetId) {
+    var li = document.getElementById(targetId);
+    if (!li) return null;
+    var clone = li.cloneNode(true);
+    var backref = clone.querySelector('a.footnote');
+    if (backref) backref.remove();
+    return clone.innerHTML;
+  }
+
+  function position(refEl) {
+    var refRect = refEl.getBoundingClientRect();
+    var ttRect = tooltip.getBoundingClientRect();
+    var margin = 12;
+    var gap = 8;
+    var vw = document.documentElement.clientWidth;
+
+    var left = refRect.left + refRect.width / 2 - ttRect.width / 2;
+    left = Math.max(margin, Math.min(left, vw - ttRect.width - margin));
+
+    var spaceAbove = refRect.top;
+    var placeBelow = spaceAbove < ttRect.height + gap + margin;
+    var top = placeBelow
+      ? refRect.bottom + gap
+      : refRect.top - ttRect.height - gap;
+
+    tooltip.style.left = (left + window.scrollX) + 'px';
+    tooltip.style.top = (top + window.scrollY) + 'px';
+    tooltip.dataset.placement = placeBelow ? 'below' : 'above';
+  }
+
+  function show(refEl) {
+    clearTimeout(hideTimer);
+    var href = refEl.getAttribute('href') || '';
+    if (href.charAt(0) !== '#') return;
+    var html = contentFor(href.slice(1));
+    if (!html) return;
+    current = refEl;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    position(refEl);
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      window.MathJax.typesetPromise([tooltip]).then(function() {
+        if (current === refEl) position(refEl);
+      }).catch(function() {});
+    }
+  }
+
+  function hide() {
+    hideTimer = setTimeout(function() {
+      tooltip.classList.remove('visible');
+      current = null;
+    }, 120);
+  }
+
+  refs.forEach(function(a) {
+    a.addEventListener('mouseenter', function() {
+      clearTimeout(showTimer);
+      showTimer = setTimeout(function() { show(a); }, 80);
+    });
+    a.addEventListener('mouseleave', function() {
+      clearTimeout(showTimer);
+      hide();
+    });
+    a.addEventListener('focus', function() { show(a); });
+    a.addEventListener('blur', hide);
+  });
+
+  tooltip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
+  tooltip.addEventListener('mouseleave', hide);
+})();
+</script>
+{% if post.toc %}
+<script>
+(function() {
+  const content = document.querySelector('.blog-post-content');
+  const lists = document.querySelectorAll('.blog-toc-list');
+  if (!content || !lists.length) return;
+
+  const headings = Array.from(content.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+    .filter(function(h) { return !h.closest('.blog-post-citation'); });
+  headings.forEach(function(h) {
+    if (!h.id) h.id = h.textContent.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  });
+
+  // Find the minimum heading level used so it becomes the top-level TOC entry
+  var minLevel = 6;
+  headings.forEach(function(h) {
+    var level = parseInt(h.tagName[1]);
+    if (level < minLevel) minLevel = level;
+  });
+
+  function buildToc(list) {
+    headings.forEach(function(h) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      li.appendChild(a);
+      var level = parseInt(h.tagName[1]);
+
+      if (level === minLevel) {
+        li.className = 'toc-h2';
+        li.dataset.sublist = '';
+        list.appendChild(li);
+      } else {
+        var parent = list.querySelector('li.toc-h2:last-child > ol');
+        if (!parent) {
+          parent = document.createElement('ol');
+          var lastTop = list.querySelector('li.toc-h2:last-child');
+          if (lastTop) lastTop.appendChild(parent);
+          else { li.className = 'toc-h3'; list.appendChild(li); return; }
+        }
+        li.className = 'toc-h3';
+        parent.appendChild(li);
+      }
+    });
+  }
+
+  lists.forEach(function(list) { buildToc(list); });
+
+  // Highlight active TOC entry on scroll
+  var tocLinks = document.querySelectorAll('.blog-toc-nav .blog-toc-list a');
+  if (tocLinks.length && headings.length) {
+    function updateActive() {
+      var current = null;
+      var threshold = window.innerHeight * 0.3;
+      for (var i = 0; i < headings.length; i++) {
+        if (headings[i].getBoundingClientRect().top <= threshold) current = headings[i];
+      }
+      // Find the parent top-level heading for the current heading
+      var parentH2 = null;
+      if (current) {
+        var currentLevel = parseInt(current.tagName[1]);
+        if (currentLevel === minLevel) {
+          parentH2 = current;
+        } else {
+          for (var j = Array.prototype.indexOf.call(headings, current) - 1; j >= 0; j--) {
+            if (parseInt(headings[j].tagName[1]) === minLevel) { parentH2 = headings[j]; break; }
+          }
+        }
+      }
+      var activeLink = null;
+      tocLinks.forEach(function(link) {
+        var isActive = current && link.getAttribute('href') === '#' + current.id;
+        var isParent = parentH2 && parentH2 !== current && link.getAttribute('href') === '#' + parentH2.id;
+        link.classList.toggle('active', isActive || isParent);
+        if (isActive) activeLink = link;
+      });
+
+      // Auto-scroll TOC to keep active link visible.
+      // IMPORTANT: do not use scrollIntoView — it scrolls every scrollable ancestor
+      // (including the window), which fights the user's page scroll. Adjust only
+      // the TOC's own scrollTop so the page position stays put.
+      if (activeLink && !userScrolledToc) {
+        var tocNav = document.querySelector('.blog-toc');
+        var linkRect = activeLink.getBoundingClientRect();
+        var tocRect = tocNav.getBoundingClientRect();
+        if (linkRect.bottom > tocRect.bottom || linkRect.top < tocRect.top) {
+          var target = (linkRect.top - tocRect.top) + tocNav.scrollTop
+                     - (tocRect.height - linkRect.height) / 2;
+          tocNav.scrollTop = Math.max(0, target);
+        }
+      }
+    }
+
+    // Track manual TOC scrolling
+    var userScrolledToc = false;
+    var tocEl = document.querySelector('.blog-toc');
+    var tocScrollTimer;
+    tocEl.addEventListener('scroll', function() {
+      userScrolledToc = true;
+      clearTimeout(tocScrollTimer);
+      tocScrollTimer = setTimeout(function() { userScrolledToc = false; }, 1000);
+    }, { passive: true });
+
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+  }
+})();
+</script>
+{% endif %}
+{% if post.plotly %}
+<style>.plotly-figure { width: 100%; min-height: 420px;}</style>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+(function() {
+  // Open Athena plotly theme — matches the site palette and typography.
+  var INK = '#1f1e1b';
+  var ACCENT = '#9e6d43';
+  var BODY_FONT = "'Lato', -apple-system, BlinkMacSystemFont, sans-serif";
+  var HEAD_FONT = "'Herbik', Georgia, serif";
+
+  var axisDefaults = {
+    gridcolor: 'rgba(82,81,78,0.12)',
+    zerolinecolor: 'rgba(31,30,27,0.25)',
+    linecolor: 'rgba(31,30,27,0.55)',
+    tickcolor: 'rgba(31,30,27,0.55)',
+    tickfont: { family: BODY_FONT, color: INK, size: 12 },
+    title: { font: { family: BODY_FONT, color: INK, size: 13 } },
+    ticks: 'outside',
+    automargin: true,
+  };
+
+  var OA_TEMPLATE = {
+    layout: {
+      colorway: ['#9e6d43','#2d4a3e','#7a3b2e','#4a5d8a','#6b5b3e','#8b3a62','#3d5a4f','#a86a2c'],
+      font: { family: BODY_FONT, color: INK, size: 13 },
+      title: { font: { family: HEAD_FONT, color: INK, size: 18 }, x: 0.02, xanchor: 'left', y: 0.96 },
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(235,222,200,0.55)',
+      xaxis: axisDefaults,
+      yaxis: axisDefaults,
+      legend: {
+        bgcolor: 'rgba(181,170,159,0.35)',
+        bordercolor: 'rgba(31,30,27,0.2)',
+        borderwidth: 1,
+        font: { family: BODY_FONT, color: INK, size: 12 }
+      },
+      hoverlabel: {
+        bgcolor: INK,
+        bordercolor: INK,
+        font: { family: BODY_FONT, color: '#fffdf3', size: 12 }
+      },
+      colorscale: {
+        sequential: [[0,'#ece3d5'],[0.5,'#b98a5a'],[1,'#4a2f18']],
+        sequentialminus: [[0,'#4a5d8a'],[0.5,'#b5aa9f'],[1,'#9e6d43']],
+        diverging: [[0,'#4a5d8a'],[0.5,'#ece3d5'],[1,'#9e6d43']]
+      },
+      shapedefaults: { line: { color: 'rgba(31,30,27,0.4)' } },
+      annotationdefaults: { font: { family: BODY_FONT, color: INK, size: 12 }, arrowcolor: 'rgba(31,30,27,0.5)' }
+    }
+  };
+
+  var figs = document.querySelectorAll('.plotly-figure[data-plotly-src]');
+  figs.forEach(function(el) {
+    // If a mobile-specific variant exists and the viewport is narrow, use
+    // it. Falls back to the desktop source otherwise.
+    var src = (window.innerWidth < 768 && el.dataset.plotlySrcMobile)
+      ? el.dataset.plotlySrcMobile
+      : el.dataset.plotlySrc;
+    fetch(src)
+      .then(function(r) {
+        if (!r.ok) throw new Error('Failed to load ' + src);
+        return r.json();
+      })
+      .then(function(spec) {
+        var layout = Object.assign(
+          { template: OA_TEMPLATE, autosize: true, margin: { t: 50, r: 24, b: 56, l: 64 } },
+          spec.layout || {}
+        );
+        var config = Object.assign({ responsive: true, displaylogo: false }, spec.config || {});
+        // Hide the modebar on mobile — on desktop it's hover-revealed,
+        // but touch devices lack hover so Plotly pins it always-on and
+        // it collides with the figure's own controls.
+        if (window.innerWidth < 768) config.displayModeBar = false;
+        Plotly.newPlot(el, spec.data || [], layout, config).then(function () {
+          if (spec.frames && spec.frames.length) {
+            Plotly.addFrames(el, spec.frames);
+            // Opt-in auto-play: figures set `layout.meta.autoplay = true`
+            // to have the animation roll forward from the slider's
+            // active step through the end of the frame list once the
+            // figure mounts.
+            var meta = (spec.layout && spec.layout.meta) || {};
+            if (meta.autoplay) {
+              var sliders = (spec.layout && spec.layout.sliders) || [];
+              var startIdx = (sliders[0] && sliders[0].active) || 0;
+              var names = spec.frames.slice(startIdx).map(function (f) {
+                return f.name;
+              });
+              setTimeout(function () {
+                Plotly.animate(el, names, {
+                  frame: { duration: 500, redraw: true },
+                  transition: { duration: 0 },
+                  mode: 'immediate'
+                });
+              }, 400);
+            }
+          }
+        });
+      })
+      .catch(function(err) {
+        el.innerHTML = '<p style="color:#a33">Plotly figure failed to load: ' + err.message + '</p>';
+      });
+  });
+})();
+</script>
+{% endif %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+{% endblock %}

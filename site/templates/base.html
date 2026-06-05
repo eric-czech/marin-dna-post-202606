@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ config.meta.title }}{% endblock %}</title>
+  <meta name="description" content="{{ config.meta.description }}">
+  <link rel="shortcut icon" href="/assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <main>
+    <nav class="nav">
+      <div class="nav-padding-global">
+        <div class="nav-inner">
+          <div class="nav-container">
+            <a href="/" class="nav-brand" aria-label="Open Athena Home">
+              <div class="nav-logo"></div>
+            </a>
+            <div class="nav-links">
+              {% for item in config.nav %}
+              {% if item.url != '/blog/' or blog_posts %}
+              <a href="{{ item.url }}" class="nav-link">{{ item.text }}</a>
+              {% endif %}
+              {% endfor %}
+            </div>
+            <button class="nav-menu-btn" aria-label="Menu" onclick="this.closest('.nav').classList.toggle('nav-open')">
+              <span class="burger-lines">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <section class="footer">
+    <div class="footer-padding-global">
+      <div class="footer-container-large">
+        <div class="footer-grid">
+          <div>
+            <a href="/" class="footer-logo-link"><div class="footer-logo-img"></div></a>
+          </div>
+          <div class="footer-links-grid">
+            <div class="footer-link-item">
+              <p class="footer-text-tiny">© <span class="copyright">2026</span> Open Athena.<br>{{ config.footer.rights }}</p>
+            </div>
+            <div class="footer-link-item">
+              {% for link in config.footer.links %}
+              <a href="{{ link.url }}" class="footer-text-tiny">{{ link.text }}</a>
+              {% endfor %}
+            </div>
+            <div class="footer-link-item">
+              <a href="{{ config.footer.social.linkedin }}" target="_blank" class="footer-social-link">
+                <img src="/assets/images/linkedin-icon.svg" loading="lazy" alt="LinkedIn Logo" class="footer-link-icon" width="20" height="20">
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-decoration"></div>
+  </section>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

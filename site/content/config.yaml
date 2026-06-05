@@ -1,0 +1,26 @@
+site_name: "Open Athena"
+tagline: "Open Athena is a nonprofit that accelerates academia with capabilities from the AI frontier"
+url: "https://www.openathena.ai"
+
+nav:
+  - text: "Projects"
+    url: "/projects/"
+  - text: "Blog"
+    url: "/blog/"
+  - text: "About"
+    url: "/about/"
+
+footer:
+  copyright: "© 2026 Open Athena."
+  rights: "All rights reserved."
+  links:
+    - text: "Privacy Policy"
+      url: "/privacy-policy"
+    - text: "Terms of Use"
+      url: "/terms"
+  social:
+    linkedin: "https://www.linkedin.com/company/open-athena/"
+
+meta:
+  title: "Open Athena"
+  description: "Open Athena is a nonprofit that accelerates academia with capabilities from the AI frontier"

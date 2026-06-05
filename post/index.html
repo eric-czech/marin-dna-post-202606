@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Athena | Genomic Language Model Optimization</title>
+  <meta name="description" content="Open Athena is a nonprofit that accelerates academia with capabilities from the AI frontier">
+  <link rel="shortcut icon" href="assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+</head>
+<body class="page-blog-post has-toc">
+  <main>
+    <nav class="nav">
+      <div class="nav-padding-global">
+        <div class="nav-inner">
+          <div class="nav-container">
+            <a href="/" class="nav-brand" aria-label="Open Athena Home">
+              <div class="nav-logo"></div>
+            </a>
+            <div class="nav-links">
+              
+              
+              <a href="/projects/" class="nav-link">Projects</a>
+              
+              
+              
+              <a href="/blog/" class="nav-link">Blog</a>
+              
+              
+              
+              <a href="/about/" class="nav-link">About</a>
+              
+              
+            </div>
+            <button class="nav-menu-btn" aria-label="Menu" onclick="this.closest('.nav').classList.toggle('nav-open')">
+              <span class="burger-lines">
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    
+<section class="blog-post">
+  <div class="blog-post-header">
+    <h1 class="project-detail-title">Genomic Language Model Optimization</h1>
+    <div class="blog-post-meta">
+      <span>June 4, 2026</span>
+      <span>·</span>
+      <span>TODO</span>
+      
+      <span>·</span>
+      
+      <div class="resource-type-tag">MARIN</div>
+      
+      
+    </div>
+  </div>
+  
+  <div class="blog-post-body">
+    <aside class="blog-toc">
+      <nav class="blog-toc-nav">
+        <div class="blog-toc-title">Contents</div>
+        <ol class="blog-toc-list"></ol>
+      </nav>
+      <details class="blog-toc-mobile">
+        <summary class="blog-toc-title">Contents</summary>
+        <ol class="blog-toc-list"></ol>
+      </details>
+    </aside>
+    <div class="blog-post-content project-detail-body">
+      <p><em>Draft — this post tracks <code>docs/outline.md</code> and embeds the current figures. Prose is intentionally skeletal pending a full write-up.</em></p>
+<p>How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers hyperparameter transfer, scaling-law, and training-mixture experiments.</p>
+<h2>Introduction</h2>
+<p><em>TBD.</em></p>
+<h2>Hyperparameter Transfer</h2>
+<ul>
+<li>Cite the Delphi post.</li>
+<li>Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.</li>
+<li>Reference Vizier sweep: ~25M params, 2.5B tokens, 16k batch (~4e17 FLOPs/run).</li>
+<li>Transfer validation: 10B tokens, 4k batch (~6.8e19 FLOPs/run); 76 runs across the 255M / 476M / 1B scales (~2.9e21 FLOPs total).</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg" alt="Learning-rate transfer across model scales" /><figcaption><strong>Figure 1:</strong> Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales.</figcaption></figure>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg" alt="Adam beta2 and epsilon transfer across model scales" /><figcaption><strong>Figure 2:</strong> Adam β₂ and ε transfer across the same scales.</figcaption></figure>
+<ul>
+<li>LR is far more sensitive than β₂ or ε.<ul>
+<li>This matters when running experiments without re-scaling LR to the token horizon.</li>
+</ul>
+</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure3_region_hyper_transfer.svg" alt="Hyperparameter transfer validated per genomic region" /><figcaption><strong>Figure 3:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption></figure>
+<h2>Parameter Scaling</h2>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg" alt="Loss scaling across model sizes with Kaplan power-law fits" /><figcaption><strong>Figure 4:</strong> Loss scaling across 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep), with Kaplan power-law fits.</figcaption></figure>
+<ul>
+<li>Loss scaling is smooth and fits standard Kaplan laws well.</li>
+</ul>
+<h2>Downstream Performance</h2>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs parameter count" /><figcaption><strong>Figure 5:</strong> Composite VEP AUPRC vs parameter count.</figcaption></figure>
+<ul>
+<li>As expected, parameter scaling yields monotonic improvements.</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg" alt="Composite VEP AUPRC vs validation loss" /><figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
+<ul>
+<li>The loss correlation is weak.</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_curves.svg" alt="VEP AUPRC training curves by model scale" /><figcaption><strong>Figure A1:</strong> VEP AUPRC training curves by model scale (appendix).</figcaption></figure>
+<ul>
+<li>Notably, VEP performance degrades at the largest model scales with more tokens.</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_correlation.svg" alt="Loss vs VEP AUPRC correlation within model-size ranges" /><figcaption><strong>Figure A2:</strong> Loss vs VEP AUPRC correlation within model-size ranges (appendix).</figcaption></figure>
+<ul>
+<li>However, VEP performance scales more monotonically within a range of model sizes.</li>
+</ul>
+<h2>Mixture Experiments</h2>
+<ul>
+<li>1B is on the upper end of model scales with higher VEP monotonicity.</li>
+<li>We continue pretraining on more tokens at that scale with different mixtures.<ul>
+<li>These experiments rely on hyperparameter transfer to new token horizons.</li>
+</ul>
+</li>
+<li>Beginning with a checkpoint trained on a uniform mixture, we test shifts in mixture weight to compensate for gaps in specific VEP tasks.<ul>
+<li>We focus on improving promoter and 5' UTR performance by shifting weights to upstream sequences.</li>
+</ul>
+</li>
+</ul>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure7_upstream_mix_auprc.svg" alt="Composite VEP AUPRC vs upstream mixture proportion" /><figcaption><strong>Figure 7:</strong> Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).</figcaption></figure>
+<ul>
+<li>Improvements from deviating off of uniform mixtures are minimal.</li>
+<li>For this reason, we continue pretraining on animal data while preparing mammalian enhancer data.<ul>
+<li>Training continues to ~104B tokens before mixing in new data.</li>
+<li>After ~62B tokens, performance improves drastically on distal tasks.</li>
+</ul>
+</li>
+</ul>
+<h2>Conclusion</h2>
+<figure><img src="assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg" alt="Mendelian VEP benchmark AUPRC heatmap across models" /><figcaption><strong>Figure 8:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.</figcaption></figure>
+<ul>
+<li>Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).</li>
+<li>This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.<ul>
+<li>Many less successful attempts are not mentioned here but are documented at <a href="https://github.com/Open-Athena/marin-dna">Open-Athena/marin-dna</a>.</li>
+</ul>
+</li>
+<li>Ongoing work will hopefully yield a more consistent, effective training strategy.</li>
+</ul>
+
+      
+<section class="blog-post-citation" aria-labelledby="cite-heading">
+  <h2 id="cite-heading">Cite this post</h2>
+  <div class="blog-post-citation-wrap">
+    <pre class="blog-post-citation-bibtex" id="blog-post-citation-bibtex"><code class="nohighlight">@misc{todo2026_genomic_lm_optimization,
+  author = {TODO},
+  title = {Genomic Language Model Optimization},
+  year = {2026},
+  month = {jun},
+  howpublished = {\url{https://www.openathena.ai/blog/genomic-lm-optimization/}},
+  note = {Open Athena Blog}
+}</code></pre>
+    <button type="button" class="blog-post-citation-copy" aria-label="Copy BibTeX" title="Copy BibTeX">
+      <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/></svg>
+      <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/></svg>
+    </button>
+  </div>
+</section>
+<script>
+(function () {
+  var btn = document.querySelector('.blog-post-citation-copy');
+  var pre = document.getElementById('blog-post-citation-bibtex');
+  if (!btn || !pre) return;
+  btn.addEventListener('click', function () {
+    var text = pre.innerText;
+    var restore = function () { btn.classList.remove('is-copied'); };
+    var done = function () {
+      btn.classList.add('is-copied');
+      setTimeout(restore, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    } else {
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      sel.removeAllRanges();
+    }
+  });
+})();
+</script>
+
+    </div>
+  </div>
+  
+</section>
+
+  </main>
+
+  <section class="footer">
+    <div class="footer-padding-global">
+      <div class="footer-container-large">
+        <div class="footer-grid">
+          <div>
+            <a href="/" class="footer-logo-link"><div class="footer-logo-img"></div></a>
+          </div>
+          <div class="footer-links-grid">
+            <div class="footer-link-item">
+              <p class="footer-text-tiny">© <span class="copyright">2026</span> Open Athena.<br>All rights reserved.</p>
+            </div>
+            <div class="footer-link-item">
+              
+              <a href="/privacy-policy" class="footer-text-tiny">Privacy Policy</a>
+              
+              <a href="/terms" class="footer-text-tiny">Terms of Use</a>
+              
+            </div>
+            <div class="footer-link-item">
+              <a href="https://www.linkedin.com/company/open-athena/" target="_blank" class="footer-social-link">
+                <img src="assets/images/linkedin-icon.svg" loading="lazy" alt="LinkedIn Logo" class="footer-link-icon" width="20" height="20">
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-decoration"></div>
+  </section>
+  
+
+<script>
+(function() {
+  // Footnote hover previews. Skip on touch-only devices — clicking still jumps.
+  if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
+
+  var refs = document.querySelectorAll('sup.footnote-ref a');
+  if (!refs.length) return;
+
+  var tooltip = document.createElement('div');
+  tooltip.className = 'fn-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+
+  var showTimer, hideTimer, current;
+
+  function contentFor(targetId) {
+    var li = document.getElementById(targetId);
+    if (!li) return null;
+    var clone = li.cloneNode(true);
+    var backref = clone.querySelector('a.footnote');
+    if (backref) backref.remove();
+    return clone.innerHTML;
+  }
+
+  function position(refEl) {
+    var refRect = refEl.getBoundingClientRect();
+    var ttRect = tooltip.getBoundingClientRect();
+    var margin = 12;
+    var gap = 8;
+    var vw = document.documentElement.clientWidth;
+
+    var left = refRect.left + refRect.width / 2 - ttRect.width / 2;
+    left = Math.max(margin, Math.min(left, vw - ttRect.width - margin));
+
+    var spaceAbove = refRect.top;
+    var placeBelow = spaceAbove < ttRect.height + gap + margin;
+    var top = placeBelow
+      ? refRect.bottom + gap
+      : refRect.top - ttRect.height - gap;
+
+    tooltip.style.left = (left + window.scrollX) + 'px';
+    tooltip.style.top = (top + window.scrollY) + 'px';
+    tooltip.dataset.placement = placeBelow ? 'below' : 'above';
+  }
+
+  function show(refEl) {
+    clearTimeout(hideTimer);
+    var href = refEl.getAttribute('href') || '';
+    if (href.charAt(0) !== '#') return;
+    var html = contentFor(href.slice(1));
+    if (!html) return;
+    current = refEl;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    position(refEl);
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      window.MathJax.typesetPromise([tooltip]).then(function() {
+        if (current === refEl) position(refEl);
+      }).catch(function() {});
+    }
+  }
+
+  function hide() {
+    hideTimer = setTimeout(function() {
+      tooltip.classList.remove('visible');
+      current = null;
+    }, 120);
+  }
+
+  refs.forEach(function(a) {
+    a.addEventListener('mouseenter', function() {
+      clearTimeout(showTimer);
+      showTimer = setTimeout(function() { show(a); }, 80);
+    });
+    a.addEventListener('mouseleave', function() {
+      clearTimeout(showTimer);
+      hide();
+    });
+    a.addEventListener('focus', function() { show(a); });
+    a.addEventListener('blur', hide);
+  });
+
+  tooltip.addEventListener('mouseenter', function() { clearTimeout(hideTimer); });
+  tooltip.addEventListener('mouseleave', hide);
+})();
+</script>
+
+<script>
+(function() {
+  const content = document.querySelector('.blog-post-content');
+  const lists = document.querySelectorAll('.blog-toc-list');
+  if (!content || !lists.length) return;
+
+  const headings = Array.from(content.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+    .filter(function(h) { return !h.closest('.blog-post-citation'); });
+  headings.forEach(function(h) {
+    if (!h.id) h.id = h.textContent.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  });
+
+  // Find the minimum heading level used so it becomes the top-level TOC entry
+  var minLevel = 6;
+  headings.forEach(function(h) {
+    var level = parseInt(h.tagName[1]);
+    if (level < minLevel) minLevel = level;
+  });
+
+  function buildToc(list) {
+    headings.forEach(function(h) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      li.appendChild(a);
+      var level = parseInt(h.tagName[1]);
+
+      if (level === minLevel) {
+        li.className = 'toc-h2';
+        li.dataset.sublist = '';
+        list.appendChild(li);
+      } else {
+        var parent = list.querySelector('li.toc-h2:last-child > ol');
+        if (!parent) {
+          parent = document.createElement('ol');
+          var lastTop = list.querySelector('li.toc-h2:last-child');
+          if (lastTop) lastTop.appendChild(parent);
+          else { li.className = 'toc-h3'; list.appendChild(li); return; }
+        }
+        li.className = 'toc-h3';
+        parent.appendChild(li);
+      }
+    });
+  }
+
+  lists.forEach(function(list) { buildToc(list); });
+
+  // Highlight active TOC entry on scroll
+  var tocLinks = document.querySelectorAll('.blog-toc-nav .blog-toc-list a');
+  if (tocLinks.length && headings.length) {
+    function updateActive() {
+      var current = null;
+      var threshold = window.innerHeight * 0.3;
+      for (var i = 0; i < headings.length; i++) {
+        if (headings[i].getBoundingClientRect().top <= threshold) current = headings[i];
+      }
+      // Find the parent top-level heading for the current heading
+      var parentH2 = null;
+      if (current) {
+        var currentLevel = parseInt(current.tagName[1]);
+        if (currentLevel === minLevel) {
+          parentH2 = current;
+        } else {
+          for (var j = Array.prototype.indexOf.call(headings, current) - 1; j >= 0; j--) {
+            if (parseInt(headings[j].tagName[1]) === minLevel) { parentH2 = headings[j]; break; }
+          }
+        }
+      }
+      var activeLink = null;
+      tocLinks.forEach(function(link) {
+        var isActive = current && link.getAttribute('href') === '#' + current.id;
+        var isParent = parentH2 && parentH2 !== current && link.getAttribute('href') === '#' + parentH2.id;
+        link.classList.toggle('active', isActive || isParent);
+        if (isActive) activeLink = link;
+      });
+
+      // Auto-scroll TOC to keep active link visible.
+      // IMPORTANT: do not use scrollIntoView — it scrolls every scrollable ancestor
+      // (including the window), which fights the user's page scroll. Adjust only
+      // the TOC's own scrollTop so the page position stays put.
+      if (activeLink && !userScrolledToc) {
+        var tocNav = document.querySelector('.blog-toc');
+        var linkRect = activeLink.getBoundingClientRect();
+        var tocRect = tocNav.getBoundingClientRect();
+        if (linkRect.bottom > tocRect.bottom || linkRect.top < tocRect.top) {
+          var target = (linkRect.top - tocRect.top) + tocNav.scrollTop
+                     - (tocRect.height - linkRect.height) / 2;
+          tocNav.scrollTop = Math.max(0, target);
+        }
+      }
+    }
+
+    // Track manual TOC scrolling
+    var userScrolledToc = false;
+    var tocEl = document.querySelector('.blog-toc');
+    var tocScrollTimer;
+    tocEl.addEventListener('scroll', function() {
+      userScrolledToc = true;
+      clearTimeout(tocScrollTimer);
+      tocScrollTimer = setTimeout(function() { userScrolledToc = false; }, 1000);
+    }, { passive: true });
+
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+  }
+})();
+</script>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-light.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+
+</body>
+</html>
