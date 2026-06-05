@@ -15,6 +15,11 @@ page that previews locally (``file://`` or any static server):
   * only the one post is rendered, into ``post/`` as its own web root;
   * figure SVGs are copied from this repo's ``figures/`` into
     ``assets/images/blog/<slug>/`` (preserving the ``appendix/`` subpath);
+  * each figure ``<img>`` is then replaced by its SVG *inlined* into the page
+    and scrubbed (``inline_figure_svgs`` / ``scrub_svg``) so the charts render
+    in the page font, follow the page ink via ``currentColor``, and scale
+    responsively — i.e. look drawn directly on the page rather than embedded as
+    pictures. This pairs with the web-native rcParams in ``utils.figure_theme``;
   * root-absolute asset URLs (``/css/...``, ``/assets/...``) are rewritten to
     relative so the page works without a server. Navigation/footer links stay
     absolute — they target the live site.
@@ -24,6 +29,8 @@ Run with: ``uv run site/build.py``
 
 from __future__ import annotations
 
+import html as html_lib
+import re
 import shutil
 from pathlib import Path
 
@@ -74,6 +81,71 @@ def rewrite_html_paths(html: str) -> str:
     )
 
 
+# The page ink the figures are drawn in (utils.figure_theme.INK). Mapped to
+# currentColor so axis text/ticks/spines follow the page's text color (and flip
+# automatically under a dark theme) instead of being a baked-in near-black.
+FIGURE_INK = "#1f1e1b"
+
+
+def scrub_svg(svg: str, alt: str, prefix: str) -> str:
+    """Turn a matplotlib SVG file into an inline-ready, page-native fragment.
+
+    The figures are authored with ``svg.fonttype='none'`` and page-ink colors
+    (see ``utils.figure_theme``); this strips the standalone-document cruft and
+    rewires the SVG so, once dropped into the page DOM, it renders like a chart
+    drawn directly on the page:
+
+      * drop the XML prolog / DOCTYPE / ``<metadata>`` (illegal/needless inline);
+      * drop the fixed ``pt`` width/height so the ``viewBox`` drives responsive
+        sizing (the CSS sets ``width:100%``);
+      * map the page-ink color to ``currentColor`` so axes/text follow the
+        page's text color;
+      * drop matplotlib's bundled font-family so labels inherit the page font;
+      * namespace every id/reference with a per-figure prefix so inlining many
+        SVGs into one document can't collide on ids (which would break clips);
+      * add ``role="img"`` + a ``<title>`` from the alt text for accessibility.
+    """
+    svg = svg[svg.index("<svg"):]  # drop <?xml ...?> + <!DOCTYPE ...>
+    svg = re.sub(r"<metadata>.*?</metadata>\s*", "", svg, flags=re.DOTALL)
+    # viewBox carries the aspect ratio; remove the absolute pt dimensions.
+    svg = re.sub(r'\swidth="[\d.]+pt"\sheight="[\d.]+pt"', "", svg, count=1)
+    # Theme-reactive ink + page font.
+    svg = svg.replace(FIGURE_INK, "currentColor")
+    svg = re.sub(r'font-family: [^;"]*', "font-family: inherit", svg)
+    # Namespace ids and their references (id=, href="#", url(#...)).
+    svg = re.sub(r'id="([^"]+)"', rf'id="{prefix}\1"', svg)
+    svg = re.sub(r'href="#([^"]+)"', rf'href="#{prefix}\1"', svg)
+    svg = re.sub(r"url\(#([^)]+)\)", rf"url(#{prefix}\1)", svg)
+    # Accessible name + a hook for the figure-background CSS.
+    svg = svg.replace("<svg ", '<svg role="img" class="figure-svg" ', 1)
+    close = svg.index(">") + 1
+    return svg[:close] + f"<title>{html_lib.escape(alt)}</title>" + svg[close:]
+
+
+_FIG_IMG = re.compile(
+    r'<img\s+src="(assets/images/blog/[^"]+\.svg)"\s+alt="([^"]*)"\s*/>'
+)
+
+
+def inline_figure_svgs(html: str, out_root: Path) -> str:
+    """Replace each figure ``<img src=...svg>`` with the inlined, scrubbed SVG.
+
+    Reads from the already-copied files under ``out_root`` so the page is a
+    single self-contained document whose charts inherit the page font/theme. A
+    missing file leaves the ``<img>`` in place as a graceful fallback.
+    """
+
+    def repl(m: re.Match) -> str:
+        src, alt = m.group(1), m.group(2)
+        svg_path = out_root / src
+        if not svg_path.exists():
+            return m.group(0)
+        prefix = re.sub(r"[^A-Za-z0-9]+", "-", Path(src).stem) + "-"
+        return scrub_svg(svg_path.read_text(), html_lib.unescape(alt), prefix)
+
+    return _FIG_IMG.sub(repl, html)
+
+
 def main() -> None:
     config = yaml.safe_load((CONTENT / "config.yaml").read_text())
     post = frontmatter.load(POST_FILE)
@@ -114,7 +186,9 @@ def main() -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(svg, dest)
 
-    (OUT / "index.html").write_text(rewrite_html_paths(html))
+    html = rewrite_html_paths(html)
+    html = inline_figure_svgs(html, OUT)
+    (OUT / "index.html").write_text(html)
     print(f"Built {OUT / 'index.html'}")
 
 

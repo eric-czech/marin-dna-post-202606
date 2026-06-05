@@ -2,20 +2,22 @@
 
 The SVG is the web-facing format: a transparent background lets it sit
 seamlessly on an HTML page (the page background shows through instead of an
-opaque white rectangle), and ``svg.fonttype="path"`` embeds glyphs as vector
-outlines so the figure renders identically regardless of which fonts the
-browser has. PNG/PDF are kept for previews and the paper, and are made
-transparent too so all three formats stay visually consistent.
+opaque white rectangle). Text is kept as real ``<text>`` elements (not vector
+outlines) so that, once the SVG is inlined into the blog page, labels render in
+the page's webfont and follow the page theme — see ``utils.figure_theme`` and
+the inline/scrub step in ``site/build.py``. PNG/PDF are kept for previews and
+the paper, and are made transparent too so all three formats stay visually
+consistent.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import matplotlib as mpl
-
-# Embed text as vector outlines so SVGs are self-contained and font-independent.
-mpl.rcParams["svg.fonttype"] = "path"
+# Imported for its side effect: applies the web-native rcParams (svg.fonttype,
+# despine, page-ink colors) to every figure, since all figures import this
+# module to save.
+from utils import figure_theme  # noqa: F401
 
 
 def save_figure(fig, directory: Path, name: str) -> None:

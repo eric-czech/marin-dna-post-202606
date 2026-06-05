@@ -12,11 +12,22 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 ---
 
 <style>
-.blog-post-content figure img {
+.blog-post-content figure img,
+.blog-post-content figure svg.figure-svg {
   background: #ece3d5;
   padding: 1rem 1.25rem;
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(31, 30, 27, 0.10);
+}
+/* Inlined matplotlib figures: the viewBox carries the aspect ratio, so let the
+   SVG fill the column and scale its height automatically. Authored with live
+   <text> and currentColor (see site/build.py + utils.figure_theme), so labels
+   render in the page font and follow the page ink. */
+.blog-post-content figure svg.figure-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
 }
 /* Nested lists inherit ul's 1rem margin-bottom, which stacks with the parent
    <li>'s margin to leave an oversized gap before the next top-level bullet.
