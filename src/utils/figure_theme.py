@@ -29,6 +29,15 @@ import matplotlib as mpl
 # #1f1e1b, which the site build maps to currentColor for theme-reactivity.
 INK = "#1f1e1b"
 
+# The figures are authored wide (~12in) but displayed at the ~720px blog column,
+# so their point-sized text scales down to roughly half the body text — it reads
+# as oddly tiny on the page. Shrinking each figure uniformly at save time raises
+# the font-size-to-figure ratio (text/lines/markers all grow together relative
+# to the canvas) so the labels render at a size comparable to the body copy,
+# while every figure's aspect ratio and tuned layout are preserved. Applied in
+# utils.savefig. 1.0 = no change; smaller = larger on-page text.
+WEB_SCALE = 0.58
+
 mpl.rcParams.update(
     {
         # Keep text as <text> (font-independent layout via DejaVu metrics, but

@@ -22,6 +22,13 @@ from utils import figure_theme  # noqa: F401
 
 def save_figure(fig, directory: Path, name: str) -> None:
     directory.mkdir(parents=True, exist_ok=True)
+    # Shrink the whole figure uniformly so its point-sized text reads at a size
+    # comparable to the page body once displayed at the blog column width (see
+    # figure_theme.WEB_SCALE). Done here, after each figure finishes its own
+    # layout, so it applies to every figure (including the appendix scripts)
+    # from one knob without disturbing their tuned proportions.
+    w, h = fig.get_size_inches()
+    fig.set_size_inches(w * figure_theme.WEB_SCALE, h * figure_theme.WEB_SCALE)
     paths = []
     for ext, extra in (("png", {"dpi": 300}), ("pdf", {}), ("svg", {})):
         path = directory / f"{name}.{ext}"
