@@ -8,12 +8,11 @@ import pandas as pd
 from figures.data import save
 from utils.figure_style import (
     FIGURE_WIDTH,
-    LEGEND_KW,
+    attach_legends_below,
+    figsize,
     fmt_beta2,
     fmt_epsilon,
     fmt_lr,
-    params_legend_handles,
-    shape_legend_handles,
 )
 from utils.sweep_panel import plot_axis
 
@@ -40,7 +39,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     Negative controls are omitted (this figure focuses on transfer-vs-direct
     sweep shapes per region).
     """
-    fig, axes = plt.subplots(3, 3, figsize=(FIGURE_WIDTH, 8.0))
+    fig, axes = plt.subplots(3, 3, figsize=figsize(FIGURE_WIDTH, 8.0))
     for r, (region_key, region_label) in enumerate(_REGION_ROWS):
         y_field = f"eval_loss_{region_key}"
         for c, (axis_role, axis_field, axis_label, log_scale, fmt) in enumerate(_HYPER_COLS):
@@ -74,21 +73,6 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     )
     # Explicit margins (no tight_layout) so the title and legend hug the plot grid tightly.
     fig.subplots_adjust(top=0.9525, bottom=0.1225, left=0.055, right=0.99, hspace=0.12, wspace=0.18)
-    # Inlined two-legend placement (centered around x=0.5) for the bottom strip.
-    p_handles, p_labels = params_legend_handles(palette, params)
-    s_handles, s_labels = shape_legend_handles(include_reference=False)
-    leg_y = 0.0475
-    leg_params = fig.legend(
-        p_handles, p_labels,
-        ncol=len(p_handles), title="model params",
-        loc="upper right", bbox_to_anchor=(0.49, leg_y),
-        **LEGEND_KW,
-    )
-    fig.add_artist(leg_params)
-    fig.legend(
-        s_handles, s_labels,
-        ncol=len(s_handles), title="run type",
-        loc="upper left", bbox_to_anchor=(0.51, leg_y),
-        **LEGEND_KW,
-    )
+    # Centered, tightly-spaced two-legend strip at the bottom (shared helper).
+    attach_legends_below(fig, palette, params, include_reference=False, legend_y=0.0475)
     save(fig, "figure3_region_hyper_transfer")

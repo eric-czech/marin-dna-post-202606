@@ -10,6 +10,7 @@ from utils.figure_style import (
     FIGURE_HEIGHT,
     FIGURE_WIDTH,
     attach_legends_below,
+    figsize,
     fmt_beta2,
     fmt_epsilon,
 )
@@ -17,7 +18,7 @@ from utils.sweep_panel import plot_axis
 
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
+    fig, axes = plt.subplots(1, 2, figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT))
     plot_axis(
         axes[0], df,
         axis_role="beta2",

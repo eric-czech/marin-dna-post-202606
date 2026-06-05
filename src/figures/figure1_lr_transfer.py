@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from figures.data import save
-from utils.figure_style import FIGURE_HEIGHT, FIGURE_WIDTH, attach_legends_below, fmt_lr
+from utils.figure_style import FIGURE_HEIGHT, FIGURE_WIDTH, attach_legends_below, figsize, fmt_lr
 from utils.sweep_panel import plot_axis
 
 # Compact (N, D, C) summary contrasting the small-scale reference Vizier sweep
@@ -22,7 +22,7 @@ _TRANSFER_SUBTITLE = (
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     # Single-panel figure narrower than the multi-panel default to avoid stretching.
-    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH * 0.8, FIGURE_HEIGHT))
+    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH * 0.8, FIGURE_HEIGHT))
     plot_axis(
         ax, df,
         axis_role="learning_rate",

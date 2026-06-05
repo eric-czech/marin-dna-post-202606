@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.patches import FancyBboxPatch
-from matplotlib.transforms import blended_transform_factory
 
 from figures.data import FIGURES_DIR, save
 from utils.figure_style import (
-    FIGURE_HEIGHT,
     FIGURE_WIDTH,
     X_LABEL_PAD,
     attach_params_legend_below,
+    figsize,
     set_plain_decimal_yticks,
 )
 
@@ -144,7 +143,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     # Log-x cannot show step=0; the step-0 eval is pre-training and not informative anyway.
     history = history[history["step"] > 0]
 
-    fig, axes = plt.subplots(1, 2, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT))
+    fig, axes = plt.subplots(1, 2, figsize=figsize(FIGURE_WIDTH, 6.5))
     panels = [
         (axes[0], "train/loss", "train loss"),
         (axes[1], "eval/loss", "val loss"),
@@ -185,8 +184,8 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
 def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> None:
     """Embed a small params-vs-loss panel with Kaplan fit inside `parent_ax`.
 
-    Inset axes uses parent-axes-fraction coords. Fit annotation lives in the
-    parent's upper-right corner where the curves leave empty space.
+    Inset axes uses parent-axes-fraction coords. The fit equation/constants sit
+    in the open space just to the right of the inset.
     """
     fit_df = results.dropna(subset=["params", "eval_loss"]).sort_values("params")
     P = fit_df["params"].astype(float).to_numpy()
@@ -195,7 +194,7 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
-    inset_bounds = (0.11, 0.12, 0.27, 0.50)
+    inset_bounds = (0.10, 0.17, 0.27, 0.46)
     inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
 
     # Replace the default rectangular background/spines with a rounded FancyBboxPatch
@@ -216,25 +215,16 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     )
     parent_ax.add_patch(rounded_bg)
 
-    # Y-range: top is tight to the max data value; bottom carries enough padding to hold
-    # the L_inf asymptote, the fit-text box just above it, and the L_inf annotation just below.
-    span = float(L.max() - L_inf)
-    inset.set_ylim(L_inf - 0.04 * span, L.max() + 0.05 * span)
+    # Y-range: zoom to the data points with a little padding. The asymptote and
+    # fit details live in a text block to the right, so the inset needn't reach
+    # all the way down to L_inf.
+    dataspan = float(L.max() - L.min()) or 1.0
+    inset.set_ylim(L.min() - 0.12 * dataspan, L.max() + 0.12 * dataspan)
 
     P_grid = np.geomspace(P.min() * 0.92, P.max() * 1.08, 200)
     inset.plot(
         P_grid, A * P_grid ** (-alpha) + L_inf,
         color="0.2", linewidth=1.3, alpha=0.92, zorder=2,
-    )
-    inset.axhline(L_inf, color="black", linewidth=0.9, linestyle=(0, (3, 2)), alpha=0.8, zorder=1)
-    # Anchor at the inset's right edge (axes fraction in x) at L_inf (data in y),
-    # then nudge outward so the label sits just past the right spine, centered on the line.
-    inset.annotate(
-        rf"$L_\infty = {L_inf:.3f}$",
-        xy=(1.0, L_inf), xycoords=("axes fraction", "data"),
-        xytext=(4, 0), textcoords="offset points",
-        ha="left", va="center", fontsize=8, color="black",
-        annotation_clip=False,
     )
     for p, loss in zip(P, L, strict=True):
         inset.scatter(
@@ -250,12 +240,16 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     inset.grid(False)
     set_plain_decimal_yticks(inset)
 
-    # Fit equation + constants centered horizontally within the inset, just above L_inf.
-    # Blended transform: x in axes fraction (so it stays centered as the inset resizes),
-    # y in data coords (so it tracks the L_inf asymptote).
-    fit_trans = blended_transform_factory(inset.transAxes, inset.transData)
-    inset.text(
-        0.5, L_inf + 0.05 * span,
-        rf"$L(N) = A\,N^{{-\alpha}} + L_\infty$" "\n" rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$",
-        transform=fit_trans, ha="center", va="bottom", fontsize=8, color="0.15",
+    # Fit equation + constants in the open space just right of the inset (the
+    # empty low-loss/early-step corner). High zorder + a panel-colored box keep
+    # it readable above the loss curves.
+    parent_ax.text(
+        inset_bounds[0] + inset_bounds[2] + 0.03,
+        inset_bounds[1] + inset_bounds[3] / 2,
+        rf"$L(N) = A\,N^{{-\alpha}} + L_\infty$" "\n"
+        rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$" "\n"
+        rf"$L_\infty = {L_inf:.3f}$",
+        transform=parent_ax.transAxes, ha="left", va="center",
+        fontsize=8, color="0.15", linespacing=1.6, zorder=25,
+        bbox=dict(boxstyle="round,pad=0.4", facecolor="#ece3d5", edgecolor="none", alpha=0.9),
     )

@@ -40,7 +40,7 @@ from scipy.ndimage import gaussian_filter1d
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
-from utils.figure_style import EARTH_QUAL  # noqa: E402
+from utils.figure_style import EARTH_QUAL, figsize  # noqa: E402
 from utils.pchip_interp import clean  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
@@ -144,7 +144,7 @@ def plot(data: dict) -> None:
     color_for = {trait: EARTH_QUAL[slot] for trait, _, slot in TRAITS}
     label_for = {trait: label for trait, label, _ in TRAITS}
 
-    fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT), sharey=True)
 
     for ax, (model_label, _run_name) in zip(axes, MODELS, strict=True):
         traces = data[model_label]

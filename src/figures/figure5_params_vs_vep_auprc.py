@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from figures.data import VEP_PANELS, save
-from utils.figure_style import EARTH_QUAL, FIGURE_WIDTH, X_LABEL_PAD
+from utils.figure_style import EARTH_QUAL, FIGURE_WIDTH, X_LABEL_PAD, figsize
 
 # 1x3 task-group panels for Figure 5. Each tuple is (panel title, list of subset keys).
 # Subset order within each panel determines the EARTH_QUAL color slot (matched to VEP_PANELS).
@@ -27,7 +27,7 @@ def build(results: pd.DataFrame) -> None:
     color_for_subset = {subset: EARTH_QUAL[i] for i, (subset, _label, _n) in enumerate(VEP_PANELS)}
     label_for_subset = {subset: label for subset, label, _n in VEP_PANELS}
 
-    fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, 4.2))
+    fig, axes = plt.subplots(1, 3, figsize=figsize(FIGURE_WIDTH, 4.2))
     for ax, (group_title, subsets) in zip(axes, FIGURE5_GROUPS, strict=True):
         handles: list = []
         labels: list[str] = []

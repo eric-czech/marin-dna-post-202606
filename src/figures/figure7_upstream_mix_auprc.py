@@ -15,7 +15,7 @@ import pandas as pd
 
 from figures import mixture_lineage as ml
 from figures.data import save
-from utils.figure_style import FIGURE_WIDTH, SERIES_COLOR, X_LABEL_PAD
+from utils.figure_style import FIGURE_WIDTH, SERIES_COLOR, X_LABEL_PAD, figsize
 
 # The uniform→upstream sweep (the ⅓-mix 1.6·M and 1.7·L are omitted).
 UPSTREAM_SWEEP = (
@@ -43,7 +43,7 @@ def build(df: pd.DataFrame) -> None:
     # displays all figures at one column width) doesn't upscale this one and
     # blow up its label text. Height is kept short for a single trend line —
     # a wide, low aspect that doesn't look oversized next to the other figures.
-    fig, ax = plt.subplots(figsize=(FIGURE_WIDTH, 4.0))
+    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH, 4.0))
     ax.axhline(score[BASELINE], color="0.4", lw=1.0, ls=":", zorder=1)
     ax.text(
         max(xs), score[BASELINE], "baseline (step=0)  ",

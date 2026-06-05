@@ -41,7 +41,7 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
-from utils.figure_style import DIVERGING_CMAP, SERIES_COLOR  # noqa: E402
+from utils.figure_style import DIVERGING_CMAP, SERIES_COLOR, figsize  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
@@ -196,7 +196,7 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
 
     fig, (ax_bar, ax_hm) = plt.subplots(
         1, 2,
-        figsize=(FIGURE_WIDTH, FIGURE_HEIGHT),
+        figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT),
         gridspec_kw={"width_ratios": [1.0, 1.6], "wspace": 0.06},
     )
 

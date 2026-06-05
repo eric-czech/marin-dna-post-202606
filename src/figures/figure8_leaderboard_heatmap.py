@@ -17,7 +17,7 @@ from matplotlib.colors import Normalize
 from matplotlib.patches import Rectangle
 
 from figures.data import save
-from utils.figure_style import HEATMAP_CMAP
+from utils.figure_style import HEATMAP_CMAP, figsize
 
 MACRO = "Macro Avg (8 subsets)"
 SUBSETS = ["Missense", "Splicing", "5' UTR", "Promoter", "ncRNA", "3' UTR", "Distal", "Synonymous"]
@@ -53,7 +53,7 @@ def build(df: pd.DataFrame) -> None:
     norm = Normalize(M.min(), M.max())
     cmap = HEATMAP_CMAP
 
-    fig, ax = plt.subplots(figsize=(10.0, 4.4))
+    fig, ax = plt.subplots(figsize=figsize(10.0, 4.4))
     ax.imshow(M, cmap=cmap, norm=norm, aspect="auto")
 
     # White gridlines for a clean tiled look.
