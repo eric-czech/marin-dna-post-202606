@@ -69,7 +69,7 @@ TRAITS: tuple[tuple[str, str, int], ...] = (
 
 # Match figures.py.
 FIGURE_WIDTH = 12.0
-FIGURE_HEIGHT = 3.8
+FIGURE_HEIGHT = 4.4
 _X_LABEL_PAD = 0
 
 # Gaussian-kernel smoothing applied to each per-trace AUPRC trajectory.

@@ -141,14 +141,20 @@ def params_legend_handles(palette: dict, params: list[int]):
     return handles, labels
 
 
-def attach_params_legend_below(fig, palette: dict, params: list[int], *, width_scale: float = 1.0) -> None:
+def attach_params_legend_below(
+    fig, palette: dict, params: list[int], *, width_scale: float = 1.0,
+    handlelength: float | None = None,
+) -> None:
     """Single horizontal `model params` legend, centered just below the x-axis.
 
     `width_scale` shrinks/expands the inter-pair gap (columnspacing) — smaller
-    values produce a more compact legend.
+    values produce a more compact legend. `handlelength` (if given) tightens the
+    marker-to-label gap for an even more compact strip.
     """
     p_handles, p_labels = params_legend_handles(palette, params)
     kw = {**LEGEND_KW, "columnspacing": LEGEND_KW["columnspacing"] * width_scale}
+    if handlelength is not None:
+        kw["handlelength"] = handlelength
     fig.legend(
         p_handles, p_labels,
         ncol=len(p_handles), title="model params",

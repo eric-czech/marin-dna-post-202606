@@ -179,7 +179,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     fig.tight_layout(rect=(0, 0.08, 1, 0.90))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
-    attach_params_legend_below(fig, palette, params_present, width_scale=0.3)
+    attach_params_legend_below(fig, palette, params_present, width_scale=0.2, handlelength=0.8)
     save(fig, "figure4_loss_scaling")
 
 
@@ -200,8 +200,8 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
-    # Keep the bottom (y0) where it is; shrink only the height (top comes down).
-    inset_bounds = (0.10, 0.17, 0.27, 0.35)
+    # Keep the bottom (y0) where it is; the height controls only the top edge.
+    inset_bounds = (0.10, 0.17, 0.27, 0.40)
     inset = parent_ax.inset_axes(list(inset_bounds), zorder=0)
 
     # Replace the default rectangular background/spines with a rounded FancyBboxPatch
@@ -248,8 +248,9 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     set_plain_decimal_yticks(inset)
 
     # Fit equation + constants in the open space just right of the inset (the
-    # empty low-loss/early-step corner), bottom-aligned to the inset plot. High
-    # zorder + a panel-colored box keep it readable above the loss curves.
+    # empty low-loss/early-step corner), bottom-aligned to the inset plot. No
+    # background box (transparent) so it doesn't mask the loss curves; high
+    # zorder keeps the text itself on top.
     parent_ax.text(
         inset_bounds[0] + inset_bounds[2] + 0.03,
         inset_bounds[1],
@@ -258,5 +259,4 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
         rf"$L_\infty = {L_inf:.3f},\ R^2 = {r2:.3f}$",
         transform=parent_ax.transAxes, ha="left", va="bottom",
         fontsize=8, color="0.15", linespacing=1.6, zorder=25,
-        bbox=dict(boxstyle="round,pad=0.4", facecolor="#ece3d5", edgecolor="none", alpha=0.9),
     )

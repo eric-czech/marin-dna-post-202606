@@ -17,7 +17,7 @@ def build(results: pd.DataFrame, palette: dict) -> None:
 
     Marker color encodes params; size is uniform.
     """
-    fig, axes = plt.subplots(2, 3, figsize=figsize(FIGURE_WIDTH, 6.5))
+    fig, axes = plt.subplots(2, 3, figsize=figsize(FIGURE_WIDTH, 7.0))
     for ax, (subset, title, n) in zip(axes.flat, VEP_PANELS, strict=True):
         col = f"lm_eval/traitgym_mendelian_v2_255/{subset}/auprc"
         valid = results.dropna(subset=["eval_loss", col]).sort_values("params")

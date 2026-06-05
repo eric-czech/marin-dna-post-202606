@@ -48,7 +48,9 @@ def build(results: pd.DataFrame) -> None:
         # CDS curves climb into the top-left, so its legend goes bottom-right,
         # pushed flush to the right axis limit; the other facets keep top-left.
         if group_title == "CDS":
-            ax.legend(handles, labels, loc="lower right", bbox_to_anchor=(1.0, 0.0),
+            # Bottom-right, flush to the right axis limit but lifted off the
+            # x-axis line so it doesn't overlap it.
+            ax.legend(handles, labels, loc="lower right", bbox_to_anchor=(1.0, 0.06),
                       borderaxespad=0.0, borderpad=0.0,
                       fontsize=8, frameon=False, handletextpad=0.4)
         else:

@@ -34,6 +34,8 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
         value_formatter=fmt_lr,
         palette=palette,
     )
+    # A little extra gap so the x-axis label clears the rotated LR tick labels.
+    ax.xaxis.labelpad = 6
     ax.set_title("Transfer validation — loss vs learning rate\n" + _TRANSFER_SUBTITLE, fontsize=11)
     # Reserve room for the legends below.
     fig.tight_layout(rect=(0, 0.08, 1, 1))
