@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from figures.data import save
-from utils.figure_style import FIGURE_HEIGHT, FIGURE_WIDTH, attach_legends_below, figsize, fmt_lr
+from utils.figure_style import FIGURE_WIDTH, attach_legends_below, figsize, fmt_lr
 from utils.sweep_panel import plot_axis
 
 # Compact (N, D, C) summary contrasting the small-scale reference Vizier sweep
@@ -24,7 +24,7 @@ def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
     # Full FIGURE_WIDTH like the other figures so its labels render at the same
     # on-page size (a narrower figure gets scaled up more at the column width,
     # making its text look larger than the multi-panel figures').
-    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT))
+    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH, 6.0))
     plot_axis(
         ax, df,
         axis_role="learning_rate",

@@ -3,6 +3,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transfer gL
 
 ## Introduction
 
+Genomic language models (gLMs) have been a central 
 - This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs
 - This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is possible
 
