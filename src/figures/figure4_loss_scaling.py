@@ -179,7 +179,7 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     fig.tight_layout(rect=(0, 0.08, 1, 0.90))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
-    attach_params_legend_below(fig, palette, params_present, width_scale=0.2, handlelength=0.8)
+    attach_params_legend_below(fig, palette, params_present, width_scale=0.4, handlelength=1.0)
     save(fig, "figure4_loss_scaling")
 
 
