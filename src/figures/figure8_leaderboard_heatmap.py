@@ -90,6 +90,8 @@ def build(df: pd.DataFrame) -> None:
     cb.set_label("AUPRC (%)", fontsize=9)
     cb.ax.tick_params(labelsize=8)
 
-    ax.set_title("Mendelian VEP benchmark — AUPRC (%)", fontsize=12, pad=10)
+    # Authored narrower than the other figures (so it scales up more at the
+    # column width); a smaller title keeps it visually in line with the rest.
+    ax.set_title("Mendelian VEP benchmark — AUPRC (%)", fontsize=9.5, pad=10)
     fig.tight_layout()
     save(fig, "figure8_leaderboard_heatmap")

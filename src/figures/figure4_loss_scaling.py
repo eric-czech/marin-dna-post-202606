@@ -170,11 +170,13 @@ def build(history: pd.DataFrame, results: pd.DataFrame, palette: dict) -> None:
     # Sits in the bottom-left empty region (low-step / low-loss has no curve data there).
     _attach_kaplan_inset(axes[1], results, palette)
 
-    fig.suptitle(
-        "Parameter scaling — loss curves & scaling law\n" + _SCALING_SUBTITLE,
-        fontsize=11, y=0.94,
-    )
-    fig.tight_layout(rect=(0, 0.08, 1, 0.97))
+    # Title in two artists: the main line is regular text (page font) and the
+    # subtitle is mathtext (DejaVu); at equal point size DejaVu looks larger, so
+    # the main line is bumped a touch to match the subtitle visually.
+    fig.text(0.5, 0.965, "Parameter scaling — loss curves & scaling law",
+             ha="center", va="center", fontsize=12.5)
+    fig.text(0.5, 0.925, _SCALING_SUBTITLE, ha="center", va="center", fontsize=11)
+    fig.tight_layout(rect=(0, 0.08, 1, 0.90))
 
     params_present = sorted({int(p) for p in history["params"].dropna().unique()})
     attach_params_legend_below(fig, palette, params_present, width_scale=0.55)
@@ -191,6 +193,10 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     P = fit_df["params"].astype(float).to_numpy()
     L = fit_df["eval_loss"].astype(float).to_numpy()
     A, alpha, L_inf = _fit_kaplan_law(P, L)
+    pred = A * P ** (-alpha) + L_inf
+    ss_res = float(np.sum((L - pred) ** 2))
+    ss_tot = float(np.sum((L - L.mean()) ** 2))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
 
     # zorder=0 puts the inset under parent's eval-loss lines (which use zorder=20),
     # so the curves visually cross over the inset like a framed window beneath them.
@@ -241,15 +247,15 @@ def _attach_kaplan_inset(parent_ax, results: pd.DataFrame, palette: dict) -> Non
     set_plain_decimal_yticks(inset)
 
     # Fit equation + constants in the open space just right of the inset (the
-    # empty low-loss/early-step corner). High zorder + a panel-colored box keep
-    # it readable above the loss curves.
+    # empty low-loss/early-step corner), bottom-aligned to the inset plot. High
+    # zorder + a panel-colored box keep it readable above the loss curves.
     parent_ax.text(
         inset_bounds[0] + inset_bounds[2] + 0.03,
-        inset_bounds[1] + inset_bounds[3] / 2,
+        inset_bounds[1],
         rf"$L(N) = A\,N^{{-\alpha}} + L_\infty$" "\n"
         rf"$A = {A:.3g},\ \alpha = {alpha:.3f}$" "\n"
-        rf"$L_\infty = {L_inf:.3f}$",
-        transform=parent_ax.transAxes, ha="left", va="center",
+        rf"$L_\infty = {L_inf:.3f},\ R^2 = {r2:.3f}$",
+        transform=parent_ax.transAxes, ha="left", va="bottom",
         fontsize=8, color="0.15", linespacing=1.6, zorder=25,
         bbox=dict(boxstyle="round,pad=0.4", facecolor="#ece3d5", edgecolor="none", alpha=0.9),
     )

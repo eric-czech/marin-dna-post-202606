@@ -45,7 +45,13 @@ def build(results: pd.DataFrame) -> None:
         ax.set_xscale("log")
         ax.set_title(group_title, fontsize=10)
         ax.grid(False)
-        ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=False, handletextpad=0.4)
+        # CDS curves climb into the top-left, so its legend goes bottom-right,
+        # pushed flush to the right axis limit; the other facets keep top-left.
+        if group_title == "CDS":
+            ax.legend(handles, labels, loc="lower right", bbox_to_anchor=(1.0, 0.0),
+                      borderaxespad=0.0, fontsize=8, frameon=False, handletextpad=0.4)
+        else:
+            ax.legend(handles, labels, loc="upper left", fontsize=8, frameon=False, handletextpad=0.4)
     axes[0].set_ylabel("AUPRC")
     # x-label only on the middle panel.
     axes[1].set_xlabel("model params", labelpad=X_LABEL_PAD)

@@ -190,14 +190,14 @@ def plot(data: dict) -> None:
     # Use explicit subplots_adjust (not tight_layout) so the title and legend
     # placement is deterministic — tight_layout silently re-pads around the
     # suptitle and legend and reopens the gap we're trying to close.
-    fig.subplots_adjust(top=0.81, bottom=0.22, left=0.055, right=0.99, wspace=0.06)
+    fig.subplots_adjust(top=0.795, bottom=0.22, left=0.055, right=0.99, wspace=0.06)
     fig.suptitle(
         "Parameter scaling — VEP AUPRC across training steps",
         fontsize=11, y=0.925,
     )
     fig.legend(
         handles=handles,
-        loc="upper center", bbox_to_anchor=(0.5, 0.10),
+        loc="upper center", bbox_to_anchor=(0.5, 0.085),
         ncol=len(handles), frameon=False,
         title="variant type", title_fontsize=9, fontsize=9,
         handletextpad=0.4, columnspacing=2.2, borderpad=0.4,

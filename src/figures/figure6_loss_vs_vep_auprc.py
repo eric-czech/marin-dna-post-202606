@@ -42,6 +42,9 @@ def build(results: pd.DataFrame, palette: dict) -> None:
             )
         ax.set_title(f"{title} (n={n:,})", fontsize=10)
         ax.grid(False)
+        # A touch more vertical headroom so the large markers at the top/bottom
+        # of each panel aren't clipped by the axes.
+        ax.margins(y=0.12)
 
     # Shared axis labels: "loss" only on the middle column of the bottom row;
     # "AUPRC" on the leftmost column only.

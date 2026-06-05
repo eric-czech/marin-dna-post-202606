@@ -210,13 +210,20 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
     ax_bar.set_yticks(y)
     ax_bar.set_yticklabels(row_labels)
     ax_bar.set_ylabel("model params")
-    ax_bar.set_xlabel(r"mean Spearman $\rho$ across variants", labelpad=_X_LABEL_PAD)
+    ax_bar.set_xlabel(r"mean Spearman $\rho$", labelpad=_X_LABEL_PAD)
     ax_bar.set_ylim(-0.5, len(y) - 0.5)
     ax_bar.invert_yaxis()  # smallest model (y=0) → top, to match imshow
     ax_bar.grid(axis="x", alpha=0.25, linewidth=0.5)
     ax_bar.set_axisbelow(True)
+    # Close the box: show the top/right spines, matching the bottom/left axis
+    # lines' width and color.
+    _bottom = ax_bar.spines["bottom"]
     for spine in ("top", "right"):
-        ax_bar.spines[spine].set_visible(False)
+        ax_bar.spines[spine].set(
+            visible=True,
+            linewidth=_bottom.get_linewidth(),
+            edgecolor=_bottom.get_edgecolor(),
+        )
     # X-range: anchor at 0 (so the y-axis spine sits flush with the bar bases)
     # and pad outward only on the side that actually has data, so the value
     # labels don't get clipped.
