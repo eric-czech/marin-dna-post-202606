@@ -21,8 +21,10 @@ _TRANSFER_SUBTITLE = (
 
 
 def build(df: pd.DataFrame, palette: dict, params: list[int]) -> None:
-    # Single-panel figure narrower than the multi-panel default to avoid stretching.
-    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH * 0.8, FIGURE_HEIGHT))
+    # Full FIGURE_WIDTH like the other figures so its labels render at the same
+    # on-page size (a narrower figure gets scaled up more at the column width,
+    # making its text look larger than the multi-panel figures').
+    fig, ax = plt.subplots(figsize=figsize(FIGURE_WIDTH, FIGURE_HEIGHT))
     plot_axis(
         ax, df,
         axis_role="learning_rate",

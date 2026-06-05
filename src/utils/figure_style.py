@@ -60,9 +60,9 @@ SERIES_COLOR = "#9c4f2f"
 # its color across figures.
 EARTH_QUAL = ["#9c4f2f", "#2f6f63", "#c0883a", "#465c6e", "#6f7d3f", "#8a5170"]
 
-# Diverging map for signed quantities (e.g. correlation ρ in A2): brown <-> teal,
-# the two poles of the earthy palette, with a pale center at zero.
-DIVERGING_CMAP = "BrBG"
+# Diverging map for signed quantities (e.g. correlation ρ): teal <-> brown, the
+# two poles of the earthy palette, with a pale center at zero.
+DIVERGING_CMAP = "BrBG_r"
 
 # Top of the legend boxes in figure coordinates. Tuned so the legends sit just
 # below the x-axis tick labels, not at the bottom of the figure.
@@ -160,13 +160,13 @@ def attach_params_legend_below(fig, palette: dict, params: list[int], *, width_s
 # Tighter spacing for the two-legend strip (figs 1-3): entries sit close
 # together (small columnspacing) and the marker handle hugs its label
 # (short handlelength), so a legend doesn't sprawl across the figure.
-TWO_LEGEND_KW = {**LEGEND_KW, "columnspacing": 0.9, "handlelength": 1.0}
+TWO_LEGEND_KW = {**LEGEND_KW, "columnspacing": 0.6, "handlelength": 0.9}
 
 
 def attach_legends_below(
     fig, palette: dict, params: list[int],
     include_reference: bool = True,
-    legend_y: float = 0.06,
+    legend_y: float = 0.09,
     gap: float = 0.03,
 ) -> None:
     """Two horizontal figure-level legends (`model params` + `run type`) placed

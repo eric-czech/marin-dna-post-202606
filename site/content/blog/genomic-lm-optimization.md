@@ -112,13 +112,13 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_curves.svg)
 
-**Figure A1:** VEP AUPRC training curves by model scale (appendix).
+**Figure 7:** VEP AUPRC training curves by model scale.
 
 - However, VEP performance scales more monotonically within a range of model sizes.
 
 ![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_correlation.svg)
 
-**Figure A2:** Loss vs VEP AUPRC correlation within model-size ranges (appendix).
+**Figure 8:** Loss vs VEP AUPRC correlation within model-size ranges.
 
 ## Mixture Experiments
 
@@ -130,7 +130,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure7_upstream_mix_auprc.svg)
 
-**Figure 7:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
+**Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
 
 - Improvements from deviating off of uniform mixtures are minimal.
 - For this reason, we continue pretraining on animal data while preparing mammalian enhancer data.
@@ -143,7 +143,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg)
 
-**Figure 8:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
+**Figure 10:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
 
 - This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.
   - Many less successful attempts are not mentioned here but are documented at [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
