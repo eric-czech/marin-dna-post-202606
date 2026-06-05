@@ -109,9 +109,13 @@ def scrub_svg(svg: str, alt: str, prefix: str) -> str:
     svg = re.sub(r"<metadata>.*?</metadata>\s*", "", svg, flags=re.DOTALL)
     # viewBox carries the aspect ratio; remove the absolute pt dimensions.
     svg = re.sub(r'\swidth="[\d.]+pt"\sheight="[\d.]+pt"', "", svg, count=1)
-    # Theme-reactive ink + page font.
+    # Theme-reactive ink + page font. Only the regular-text font-family (the long
+    # fallback list, which always contains commas) is rewritten to inherit the
+    # page font; mathtext tspans carry a bare ``'DejaVu Sans'`` (no comma) and are
+    # left alone — they're positioned per-glyph from DejaVu metrics, so they must
+    # render in DejaVu (embedded via @font-face in the post) or they mis-space.
     svg = svg.replace(FIGURE_INK, "currentColor")
-    svg = re.sub(r'font-family: [^;"]*', "font-family: inherit", svg)
+    svg = re.sub(r'font-family: [^;"]*,[^;"]*', "font-family: inherit", svg)
     # Namespace ids and their references (id=, href="#", url(#...)).
     svg = re.sub(r'id="([^"]+)"', rf'id="{prefix}\1"', svg)
     svg = re.sub(r'href="#([^"]+)"', rf'href="#{prefix}\1"', svg)

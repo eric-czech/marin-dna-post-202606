@@ -41,6 +41,7 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
+from utils.figure_style import DIVERGING_CMAP, SERIES_COLOR  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
@@ -203,7 +204,7 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
     y = np.arange(len(row_labels))
     ax_bar.barh(
         y, bar_vals,
-        color="#3B6FB6", edgecolor="black", linewidth=0.4, alpha=0.9,
+        color=SERIES_COLOR, edgecolor="black", linewidth=0.4, alpha=0.9,
     )
     ax_bar.axvline(0, color="0.4", lw=0.6)
     ax_bar.set_yticks(y)
@@ -244,7 +245,7 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
     vmax = max(0.2, float(np.nanmax(np.abs(M))) if np.any(np.isfinite(M)) else 1.0)
     im = ax_hm.imshow(
         M,
-        cmap="RdBu", vmin=-vmax, vmax=vmax,
+        cmap=DIVERGING_CMAP, vmin=-vmax, vmax=vmax,
         aspect="auto", interpolation="nearest",
     )
     ax_hm.set_xticks(np.arange(len(col_labels)))

@@ -47,7 +47,7 @@ def build(df: pd.DataFrame) -> None:
     ax.axhline(score[BASELINE], color="0.4", lw=1.0, ls=":", zorder=1)
     ax.text(
         max(xs), score[BASELINE], "baseline (step=0)  ",
-        ha="right", va="bottom", fontsize=8, color="0.4",
+        ha="right", va="bottom", fontsize=10, color="0.4",
     )
     ax.plot(
         xs, ys,

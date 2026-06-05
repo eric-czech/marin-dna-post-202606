@@ -35,6 +35,17 @@ HEATMAP_CMAP = LinearSegmentedColormap.from_list(
 # the warm end of PARAM_CMAP.
 SERIES_COLOR = "#9c4f2f"
 
+# Earthy *qualitative* palette for categorical series (variant/trait types in
+# figures 5, A1, A2) — the warm counterpart to tab10. Six distinct, muted hues
+# (rust, teal, ochre, slate, olive, plum) that stay legible on the #ece3d5
+# panels and harmonize with PARAM_CMAP. Order is fixed so a given category keeps
+# its color across figures.
+EARTH_QUAL = ["#9c4f2f", "#2f6f63", "#c0883a", "#465c6e", "#6f7d3f", "#8a5170"]
+
+# Diverging map for signed quantities (e.g. correlation ρ in A2): brown <-> teal,
+# the two poles of the earthy palette, with a pale center at zero.
+DIVERGING_CMAP = "BrBG"
+
 # Top of the legend boxes in figure coordinates. Tuned so the legends sit just
 # below the x-axis tick labels, not at the bottom of the figure.
 LEGEND_Y = 0.10

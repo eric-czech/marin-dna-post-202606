@@ -40,6 +40,7 @@ from scipy.ndimage import gaussian_filter1d
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
+from utils.figure_style import EARTH_QUAL  # noqa: E402
 from utils.pchip_interp import clean  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
@@ -58,7 +59,7 @@ MODELS: tuple[tuple[str, str], ...] = (
     ("4B", "dna-bolinas-scaling-v0.5-h2944-p4B"),
 )
 
-# (trait key, display label, tab10 slot from figures/data.py:VEP_PANELS).
+# (trait key, display label, EARTH_QUAL slot from figures/data.py:VEP_PANELS).
 # Slots: missense=0, tss_proximal=1, splicing=4.
 TRAITS: tuple[tuple[str, str, int], ...] = (
     ("missense_variant", "missense", 0),
@@ -140,8 +141,7 @@ def _fmt_step(x: float, _pos) -> str:
 
 
 def plot(data: dict) -> None:
-    cmap = plt.get_cmap("tab10")
-    color_for = {trait: cmap(slot) for trait, _, slot in TRAITS}
+    color_for = {trait: EARTH_QUAL[slot] for trait, _, slot in TRAITS}
     label_for = {trait: label for trait, label, _ in TRAITS}
 
     fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT), sharey=True)

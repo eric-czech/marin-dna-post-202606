@@ -12,6 +12,16 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 ---
 
 <style>
+/* Math labels in the figures are positioned per-glyph from DejaVu Sans metrics,
+   so they're left in DejaVu (the rest of the labels inherit the page font). Embed
+   DejaVu so those positions render correctly instead of mis-spacing on a fallback. */
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('assets/fonts/DejaVuSans.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 .blog-post-content figure img,
 .blog-post-content figure svg.figure-svg {
   background: #ece3d5;
