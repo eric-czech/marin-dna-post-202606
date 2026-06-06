@@ -35,9 +35,9 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 - Loss correlation is weak
   - Show `figure6_loss_vs_vep_auprc`
 - Notably, VEP performance degrades at the largest model scales with more tokens
-  - Show `loss_vs_traitgym_curves`
+  - Show `figure7_loss_vs_traitgym_curves`
 - However, we can see that VEP performance scales more monotonically within a range of model sizes
-  - Show `loss_vs_traitgym_correlation`
+  - Show `figure8_loss_vs_traitgym_correlation`
 
  ## Mixture Experiments
 
@@ -49,7 +49,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 - We begin by training at 1B params on a uniform mixture of the same 3-region, animal sequences used previously
   - By ~50B tokens, this demonstrated saturation on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone
   - We then test shifts in mixture weights to identify whether or not upstream task performance can be improved without sacrificing performance on others
-  - Show `figure7_upstream_mix_auprc`
+  - Show `figure9_upstream_mix_auprc`
   - Upstream task gains are easily undone by performance lost on other tasks 
     - Similar experiments starting from models trained only on upstream data or from proportionally weighted checkpoints instead yielded no clear net-wins
   - Conclusion: improving zero-shot performance mid-flight is not really possible with non-uniform weighting of **existing** mixture components
@@ -58,14 +58,14 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
   - Surprisingly, this improves upstream task performance significantly (promoter VEP from 30%->40%) and very drastically improves distal task performance (ncRNA exon variants from 19%->65% and enhancer variants from 14%->33%) while mostly keeping performance on other tasks fixed
   - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens) followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens)
     - This outperforms de novo training on the 5-region mixture
-  - Show `figure9_lineage_vep_trajectory`
+  - Show `figure10_lineage_vep_trajectory`
   - Conclusion: improving zero-shot performance mid-flight is possible by adding **new**, uniformly-weighted mixture components
     
 
 ## Conclusion
 
 - Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24)
-  - Show `figure8_leaderboard_heatmap`
+  - Show `figure11_leaderboard_heatmap`
 - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
 - Ongoing work will hopefully yield a more consistent, effective training strategy

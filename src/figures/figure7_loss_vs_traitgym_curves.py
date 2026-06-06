@@ -1,6 +1,6 @@
-"""Per-model VEP AUPRC curves across training steps for selected variant types.
+"""Figure 7: per-model VEP AUPRC curves across training steps for selected variant types.
 
-Companion to `loss_vs_traitgym_correlation.py`. That figure summarized the
+Companion to `figure8_loss_vs_traitgym_correlation.py`. That figure summarized the
 per-(model, variant) Spearman ρ between loss and AUPRC across training; this
 figure shows the raw AUPRC trajectories the correlation was computed from,
 for a representative subset of (model, variant) combinations:
@@ -18,10 +18,10 @@ the tab10 slots from `figures.py:VEP_PANELS` so missense / promoter / splicing
 read as the same color here, in figure 5, and in figure 6.
 
 Output:
-  figures/appendix/loss_vs_traitgym_curves.{png,pdf}
+  figures/figure7_loss_vs_traitgym_curves.{png,pdf,svg}
 
 Usage:
-  uv run src/appendix/loss_vs_traitgym_curves.py
+  uv run src/figures/figure7_loss_vs_traitgym_curves.py
 """
 
 from __future__ import annotations
@@ -38,15 +38,15 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
 from scipy.ndimage import gaussian_filter1d
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
 from utils.figure_style import EARTH_QUAL, figsize  # noqa: E402
 from utils.pchip_interp import clean  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "parameter_scaling_results.csv"
-FIGURES_DIR = ROOT / "figures" / "appendix"
+FIGURES_DIR = ROOT / "figures"
 
 WANDB_PROJECT = "eric-czech/marin"
 TRAITGYM_PREFIX = "lm_eval/traitgym_mendelian_v2_255"
@@ -202,7 +202,7 @@ def plot(data: dict) -> None:
         title="variant type", title_fontsize=9, fontsize=9,
         handletextpad=0.4, columnspacing=2.2, borderpad=0.4,
     )
-    _save(fig, "loss_vs_traitgym_curves")
+    _save(fig, "figure7_loss_vs_traitgym_curves")
 
 
 def main() -> None:

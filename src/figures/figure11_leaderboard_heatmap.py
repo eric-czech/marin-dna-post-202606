@@ -1,4 +1,4 @@
-"""Figure 8: Mendelian VEP benchmark heatmap (AUPRC %).
+"""Figure 11: Mendelian VEP benchmark heatmap (AUPRC %).
 
 Rows are models ordered by Macro Avg; columns are the headline Macro Avg (over 8
 subsets) plus each per-subset AUPRC. The Macro Avg column is boxed and bolded as
@@ -94,4 +94,4 @@ def build(df: pd.DataFrame) -> None:
     # column width); a smaller title keeps it visually in line with the rest.
     ax.set_title("Mendelian VEP benchmark — AUPRC (%)", fontsize=9.5, pad=10)
     fig.tight_layout()
-    save(fig, "figure8_leaderboard_heatmap")
+    save(fig, "figure11_leaderboard_heatmap")

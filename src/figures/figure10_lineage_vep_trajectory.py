@@ -1,4 +1,4 @@
-"""Figure 9: composed VEP AUPRC trajectories across continuation lineages.
+"""Figure 10: composed VEP AUPRC trajectories across continuation lineages.
 
 Three model lineages, each three training stages warm-started in sequence, are
 *composed* into a single trajectory over cumulative training tokens:
@@ -293,7 +293,7 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
     fig.tight_layout(rect=(0, 0.05, 1, 0.93))
     fig.suptitle("VEP AUPRC trajectories by mixture strategy", fontsize=11, y=0.952)
     _attach_legends(fig)
-    save(fig, "figure9_lineage_vep_trajectory")
+    save(fig, "figure10_lineage_vep_trajectory")
 
 
 def _highlight_macro(ax, title: str) -> None:

@@ -1,4 +1,4 @@
-"""Figure 7: continued-pretraining mixture shift — composite VEP AUPRC vs upstream proportion.
+"""Figure 9: continued-pretraining mixture shift — composite VEP AUPRC vs upstream proportion.
 
 Seven `uniform_to_upstream_*` continuations (all warm-started from the 1·L
 uniform run) trained mixes from upstream-heavy (U90) down to no-upstream
@@ -60,4 +60,4 @@ def build(df: pd.DataFrame) -> None:
     ax.grid(True, alpha=0.25, linewidth=0.5)
 
     fig.tight_layout()
-    save(fig, "figure7_upstream_mix_auprc")
+    save(fig, "figure9_upstream_mix_auprc")

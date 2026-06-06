@@ -1,4 +1,4 @@
-"""Per-model Spearman correlation between loss and VEP AUPRC across training steps.
+"""Figure 8: per-model Spearman correlation between loss and VEP AUPRC across training steps.
 
 For each of the 8 parameter-scaling runs (v0.5), we fetch the full training
 history of `eval/loss` and `lm_eval/traitgym_mendelian_v2_255/<trait>/auprc`
@@ -21,10 +21,10 @@ The figure is a 1x2 layout:
          left. Row labels appear only on the bar chart.
 
 Output:
-  figures/appendix/loss_vs_traitgym_correlation.{png,pdf}
+  figures/figure8_loss_vs_traitgym_correlation.{png,pdf,svg}
 
 Usage:
-  uv run src/appendix/loss_vs_traitgym_correlation.py
+  uv run src/figures/figure8_loss_vs_traitgym_correlation.py
 """
 
 from __future__ import annotations
@@ -39,15 +39,15 @@ import pandas as pd
 import wandb
 from scipy.stats import spearmanr
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
 from utils.figure_style import DIVERGING_CMAP, SERIES_COLOR, figsize  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 DATA_PATH = ROOT / "data" / "parameter_scaling_results.csv"
-FIGURES_DIR = ROOT / "figures" / "appendix"
+FIGURES_DIR = ROOT / "figures"
 
 WANDB_PROJECT = "eric-czech/marin"
 SCALING_PREFIX = "dna-bolinas-scaling-v0.5-"
@@ -286,7 +286,7 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
         fontsize=11, y=0.965,
     )
     fig.tight_layout(rect=(0, 0, 1, 0.915))
-    _save(fig, "loss_vs_traitgym_correlation")
+    _save(fig, "figure8_loss_vs_traitgym_correlation")
 
 
 def main() -> None:

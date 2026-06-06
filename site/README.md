@@ -50,7 +50,8 @@ in as pictures, via two cooperating pieces:
 Inlining (not `<img>`) is what lets the page font and theme reach inside the
 SVG; an `<img>`-embedded SVG renders in an isolated document that can't see
 either. Regenerate figures (`uv run python -m figures`, plus the two wandb-fed
-appendix scripts) after any theme change.
+figure scripts `src/figures/figure7_loss_vs_traitgym_curves.py` and
+`figure8_loss_vs_traitgym_correlation.py`) after any theme change.
 
 ## Migrating to the live site
 

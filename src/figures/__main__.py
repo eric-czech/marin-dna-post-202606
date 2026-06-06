@@ -22,9 +22,11 @@ from figures.figure3_region_hyper_transfer import build as figure3  # noqa: E402
 from figures.figure4_loss_scaling import build as figure4  # noqa: E402
 from figures.figure5_params_vs_vep_auprc import build as figure5  # noqa: E402
 from figures.figure6_loss_vs_vep_auprc import build as figure6  # noqa: E402
-from figures.figure7_upstream_mix_auprc import build as figure7  # noqa: E402
-from figures.figure8_leaderboard_heatmap import build as figure8  # noqa: E402
-from figures.figure9_lineage_vep_trajectory import build as figure9  # noqa: E402
+# Figures 7 & 8 (loss_vs_traitgym_curves / _correlation) are wandb-fed standalone
+# scripts — run separately, not part of this CSV-only build.
+from figures.figure9_upstream_mix_auprc import build as figure9  # noqa: E402
+from figures.figure10_lineage_vep_trajectory import build as figure10  # noqa: E402
+from figures.figure11_leaderboard_heatmap import build as figure11  # noqa: E402
 from utils.figure_style import palette  # noqa: E402
 
 
@@ -50,9 +52,9 @@ def main() -> None:
     figure4(scaling_history, scaling_results, scaling_palette)
     figure5(scaling_results)
     figure6(scaling_results, scaling_palette)
-    figure7(mixture_df)
-    figure8(leaderboard_df)
-    figure9(mixture_df, mixture_history_df)
+    figure9(mixture_df)
+    figure10(mixture_df, mixture_history_df)
+    figure11(leaderboard_df)
 
 
 if __name__ == "__main__":

@@ -112,13 +112,13 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 - Notably, VEP performance degrades at the largest model scales with more tokens.
 
-![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_curves.svg)
+![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg)
 
 **Figure 7:** VEP AUPRC training curves by model scale.
 
 - However, VEP performance scales more monotonically within a range of model sizes.
 
-![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/appendix/loss_vs_traitgym_correlation.svg)
+![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg)
 
 **Figure 8:** Loss vs VEP AUPRC correlation within model-size ranges.
 
@@ -133,7 +133,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
   - By ~50B tokens, this saturated on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone.
   - We then test shifts in mixture weights to see whether upstream task performance can be improved without sacrificing the others.
 
-![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure7_upstream_mix_auprc.svg)
+![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg)
 
 **Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
 
@@ -146,7 +146,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
   - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).
     - This outperforms de novo training on the 5-region mixture.
 
-![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure9_lineage_vep_trajectory.svg)
+![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg)
 
 **Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages (macro average highlighted, top-left). The dashed line marks where the best recipe (m5.1) shifts from a 3-region to a 5-region mixture — the inflection in the distal and non-coding-exon panels.
 
@@ -156,7 +156,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 - Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).
 
-![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg)
+![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg)
 
 **Figure 11:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
 

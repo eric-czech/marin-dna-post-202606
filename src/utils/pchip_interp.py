@@ -1,9 +1,9 @@
-"""Shared PCHIP interpolation utilities for appendix figures.
+"""Shared PCHIP interpolation utilities for the figure set.
 
 Two consumers:
-  - pooled_vs_unpooled.py: overlay independently-fit PCHIP curves on a
+  - appendix/pooled_vs_unpooled.py: overlay independently-fit PCHIP curves on a
     common grid restricted to data overlap (no extrapolation).
-  - loss_vs_traitgym_correlation.py: align an eval/loss series and an
+  - figure8_loss_vs_traitgym_correlation.py: align an eval/loss series and an
     lm_eval auprc series at matched steps (within the overlap) so they can
     be correlated as a time series.
 
