@@ -21,11 +21,28 @@ Branch types and token accounting:
   - "pre_cooldown" — warm-started from a parent checkpoint taken before the
                      parent's cooldown (~80% of the parent's run).
   - "final"        — warm-started from a parent's final (fully-cooled) checkpoint.
-  Inherited tokens scale the PARENT's own tokens by COOLDOWN_KEEP_FRACTION for a
-  pre_cooldown branch (and by 1.0 for final); grandparent-and-earlier
-  contributions always pass through at 100% (they precede every branch point).
-  Note: one pre_cooldown branch (1.7.1) actually sits at ~68% of its parent, but
-  per spec we use the flat 0.8 for all pre_cooldown branches.
+  Inherited tokens scale the PARENT's own tokens by `keep_fraction(run)` for a
+  pre_cooldown branch (default COOLDOWN_KEEP_FRACTION = 0.8) and by 1.0 for
+  final; grandparent-and-earlier contributions always pass through at 100% (they
+  precede every branch point).
+  Note: most pre_cooldown branches sit at exactly 0.8 of the parent (the marin
+  `ResumeBeforeCooldown(cooldown_fraction=0.2)` branch point), so the flat 0.8 is
+  used for them. The CHAINED zoonomia continuations (5.1.1 / 6.1.1, i.e.
+  exp135-zoonomia-m{1,3}.2) instead fork at ~0.60 of their parent's own tokens —
+  before the parent's own cooldown but well short of 0.8 — so they carry an
+  explicit `keep_fraction` override. This keeps both the cumulative-token
+  accounting (Appendix mixture tree) and the composed trajectory (Figure 9, which
+  truncates each parent phase at its child's `keep_fraction`) faithful to the
+  true fork point. One older pre_cooldown branch (1.7.1) actually sits at ~68% of
+  its parent but is left at the flat 0.8 for back-compat with the published tree.
+
+The lineages composed in Figure 9 (root -> leaf, each three training stages):
+  - 1·L -> 1.7·L -> 1.7.2·L         (uniform -> uniform_to_uniform_1 -> m5.1;
+                                     leaf warm-starts from the parent's FINAL ckpt)
+  - 5·L -> 5.1·L -> 5.1.1·L         (m1 -> m1.1 -> m1.2; pre_cooldown chain)
+  - 6·L -> 6.1·L -> 6.1.1·L         (m3 -> m3.1 -> m3.2; pre_cooldown chain)
+m1.2 / m3.2 are still in flight on preemptible VMs (see src/data.py) and may have
+few or no eval points logged yet; downstream code tolerates partial runs.
 """
 
 from __future__ import annotations
@@ -59,6 +76,10 @@ class Run:
     weights: dict[str, float]    # training mixture weights over REGION_ORDER
     parent: str | None           # parent's `mix`, or None for roots
     branch: str                  # "root" | "pre_cooldown" | "final"
+    keep_fraction: float | None = None  # fraction of parent's OWN tokens inherited
+    #                                     at the branch; None -> default (0.8 for
+    #                                     pre_cooldown, 1.0 for final). Set only
+    #                                     when the true fork departs from 0.8.
 
 
 # Ordered so siblings appear left→right as a sweep (e.g. under `unif`, by upstream
@@ -97,12 +118,31 @@ LINEAGE: tuple[Run, ...] = (
     # own-token count scaled by run_progress in the figure (it never finished).
     Run("3·L", "cds_only", {"cds": 1.0}, None, "root"),
     Run("4·S", "downstream_only", {"downstream": 1.0}, None, "root"),
+    # Tree 5 — zoonomia uniform (CUDNE ⅕) base, then a pre_cooldown continuation
+    # chain (m1 -> m1.1 -> m1.2). m1.1 forks at 0.8 of m1; m1.2 forks at 0.60 of
+    # m1.1's own tokens (step 41412 of [23664, 53244]) — before m1.1's own
+    # cooldown but short of 0.8, hence the explicit keep_fraction.
     Run("5·L", "exp135-zoonomia-m1",
         {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
         None, "root"),
+    Run("5.1·L", "exp135-zoonomia-m1.1",
+        {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
+        "exp135-zoonomia-m1", "pre_cooldown"),
+    Run("5.1.1·L", "exp135-zoonomia-m1.2",
+        {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
+        "exp135-zoonomia-m1.1", "pre_cooldown", keep_fraction=0.60),
+    # Tree 6 — zoonomia upstream-tilted (U25, CDNE 0.1875) base, then a pre_cooldown
+    # continuation chain (m3 -> m3.1 -> m3.2), mirroring tree 5. m3.2 forks at 0.60
+    # of m3.1's own tokens (step 41405 of [23660, 53239]).
     Run("6·L", "exp135-zoonomia-m3",
         {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
         None, "root"),
+    Run("6.1·L", "exp135-zoonomia-m3.1",
+        {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
+        "exp135-zoonomia-m3", "pre_cooldown"),
+    Run("6.1.1·L", "exp135-zoonomia-m3.2",
+        {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
+        "exp135-zoonomia-m3.1", "pre_cooldown", keep_fraction=0.60),
 )
 
 BY_MIX: dict[str, Run] = {r.mix: r for r in LINEAGE}
@@ -113,8 +153,22 @@ def children_of(mix: str) -> list[Run]:
     return [r for r in LINEAGE if r.parent == mix]
 
 
-def _branch_fraction(run: Run) -> float:
+def keep_fraction(run: Run) -> float:
+    """Fraction of the parent's OWN tokens inherited at `run`'s branch point.
+
+    A `final` branch inherits the parent's entire run (1.0). A `pre_cooldown`
+    branch inherits up to the fork: the per-run `keep_fraction` override when set
+    (the chained continuations fork at ~0.60), else the flat COOLDOWN_KEEP_FRACTION
+    (0.8) that the bulk of pre_cooldown branches sit at. Roots inherit nothing,
+    but are never asked (they have no parent); we return 1.0 defensively.
+    """
+    if run.keep_fraction is not None:
+        return run.keep_fraction
     return COOLDOWN_KEEP_FRACTION if run.branch == "pre_cooldown" else 1.0
+
+
+# Back-compat alias for the previous private helper.
+_branch_fraction = keep_fraction
 
 
 def inherited_components(mix: str, own_tokens: dict[str, float]) -> dict[str, float]:
