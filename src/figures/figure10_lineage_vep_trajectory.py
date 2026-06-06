@@ -252,7 +252,7 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
 
     for ax, (subsets, title, is_macro) in zip(axes.flat, panels, strict=True):
         _draw_panel(ax, subsets, results, history_df, own_full)
-        ax.grid(True, alpha=0.25, linewidth=0.5)
+        ax.grid(False)
         ax.margins(y=0.10)
         # Consistent tick-label size across both axes (matches the secondary
         # step-axis ticks); the token tick labels otherwise render larger.

@@ -57,7 +57,7 @@ def build(df: pd.DataFrame) -> None:
     ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
     ax.set_ylabel("composite VEP AUPRC")
     ax.set_title("Continued pretraining from uniform mixture", fontsize=11)
-    ax.grid(True, alpha=0.25, linewidth=0.5)
+    ax.grid(False)
 
     fig.tight_layout()
     save(fig, "figure9_upstream_mix_auprc")
