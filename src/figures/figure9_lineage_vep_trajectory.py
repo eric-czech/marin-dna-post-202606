@@ -43,7 +43,7 @@ from matplotlib.patches import Rectangle
 from figures import mixture_lineage as ml
 from figures.data import save
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history
-from utils.figure_style import EARTH_QUAL, FIGURE_WIDTH, LEGEND_KW, X_LABEL_PAD, figsize
+from utils.figure_style import EARTH_QUAL, FIGURE_WIDTH, LEGEND_KW, figsize
 
 # Constant across every v0.9 1B run (train_batch_size × train_seq_len).
 TOKENS_PER_STEP = 8192 * 256
@@ -233,50 +233,82 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
     to_ksteps = lambda b: b * 1e9 / TOKENS_PER_STEP / 1e3
     to_btokens = lambda k: k * 1e3 * TOKENS_PER_STEP / 1e9
 
-    # First panel = macro average over all 8 metrics; the rest are the 8 subsets.
-    panels = [(ALL_SUBSETS, "macro average", True)] + [((s,), t, False) for s, t in METRIC_PANELS]
+    # Row-major panel layout: row 1 = macro avg + the two distal-type tasks;
+    # row 2 = coding tasks; row 3 = the upstream/UTR tasks.
+    titles = dict(METRIC_PANELS)
+    macro = (ALL_SUBSETS, "macro average", True)
+    sub = lambda key: ((key,), titles[key], False)
+    panels = [
+        macro, sub("distal"), sub("non_coding_transcript_exon_variant"),
+        sub("missense_variant"), sub("splicing"), sub("synonymous_variant"),
+        sub("tss_proximal"), sub("5_prime_UTR_variant"), sub("3_prime_UTR_variant"),
+    ]
+
+    # Consolidated-token position where the m5.1 lineage's mixture shifts from 3
+    # regions (uniform / uniform_to_uniform_1) to 5 (m5.1 adds ncrna_exon +
+    # ccre_non_promoter). This is exactly m5.1's inherited-token offset — i.e. where
+    # its curve's final phase begins — so the marker aligns with the plotted line.
+    shift_x = sum(ml.inherited_components("exp135-zoonomia-m5.1", own_full).values()) / 1e9
+
     for ax, (subsets, title, is_macro) in zip(axes.flat, panels, strict=True):
         _draw_panel(ax, subsets, results, history_df, own_full)
         ax.grid(True, alpha=0.25, linewidth=0.5)
         ax.margins(y=0.10)
+        # Consistent tick-label size across both axes (matches the secondary
+        # step-axis ticks); the token tick labels otherwise render larger.
+        ax.tick_params(axis="both", labelsize=7.5)
+        # Thin full border around every facet (the theme drops top/right spines).
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_linewidth(0.6)
         if is_macro:
             _highlight_macro(ax, title)
         else:
             ax.set_title(title, fontsize=10, pad=3)
-        # Secondary step axis only on the top row (shared x → identical ticks); its
-        # label hugs the ticks. Set on every top panel (empty on the sides) so the
-        # three top titles stay vertically aligned, with text only on the center.
+        # Row 1 only: mark the m5.1 3-region → 5-region mixture shift in every
+        # panel, but annotate it once (macro panel, bottom-right where there's room).
         if ax in axes[0]:
+            ax.axvline(shift_x, color="0.35", ls=(0, (4, 2)), lw=1.0, zorder=1)
+            if is_macro:
+                ax.text(
+                    0.805, 0.10, "m5.1 3→5 region\nmixture shift", transform=ax.transAxes,
+                    ha="center", va="bottom", fontsize=7.5, color="0.35", zorder=4,
+                    linespacing=1.2,
+                )
+            # Secondary step axis (shared x → identical ticks); its label hugs the
+            # ticks. Set on every top panel (blank on the sides) so the three top
+            # titles stay vertically aligned, with text only on the center.
             sec = ax.secondary_xaxis("top", functions=(to_ksteps, to_btokens))
-            sec.tick_params(labelsize=7.5, pad=1.5)
+            sec.tick_params(labelsize=7.5, pad=0.5)
             sec.set_xlabel(
-                "consolidated training steps (k)" if ax is axes[0, 1] else " ",
-                fontsize=8.5, labelpad=2,
+                "training steps (k)" if ax is axes[0, 1] else " ",
+                fontsize=8.5, labelpad=4,
             )
 
-    for ax in axes[-1]:
-        ax.set_xlabel("cumulative tokens (B)", labelpad=X_LABEL_PAD, fontsize=9)
+    # Primary x-axis label once, under the center facet of the bottom row.
+    axes[-1, 1].set_xlabel("tokens (B)", labelpad=4, fontsize=9)
     for ax in axes[:, 0]:
-        ax.set_ylabel("AUPRC")
+        ax.set_ylabel("VEP AUPRC")
 
     fig.tight_layout(rect=(0, 0.05, 1, 0.93))
-    fig.suptitle("VEP AUPRC trajectories by mixture strategy", fontsize=11, y=0.965)
+    fig.suptitle("VEP AUPRC trajectories by mixture strategy", fontsize=11, y=0.952)
     _attach_legends(fig)
     save(fig, "figure9_lineage_vep_trajectory")
 
 
 def _highlight_macro(ax, title: str) -> None:
-    """Visually set the macro-average panel apart: tinted background, accent title,
-    and accent left/bottom spines. The background is a real patch (not the Axes
-    facecolor) so it survives the transparent SVG save."""
+    """Visually set the macro-average panel apart: tinted background + accent title.
+    The background is a real patch (not the Axes facecolor) so it survives the
+    transparent SVG save. (The uniform thin facet border is applied separately.)"""
     ax.add_patch(Rectangle(
         (0, 0), 1, 1, transform=ax.transAxes, facecolor=MACRO_FILL,
         edgecolor="none", zorder=-10,
     ))
     ax.set_title(title, fontsize=11, fontweight="bold", color=MACRO_ACCENT, pad=3)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(MACRO_ACCENT)
-        ax.spines[side].set_linewidth(1.6)
+    # Thicker accent border on all sides to emphasize the macro panel.
+    for spine in ax.spines.values():
+        spine.set_color(MACRO_ACCENT)
+        spine.set_linewidth(1.4)
 
 
 def _attach_legends(fig) -> None:
@@ -287,7 +319,9 @@ def _attach_legends(fig) -> None:
         for leaf, _ in LINEAGES
     ]
     lineage_labels = [label for _, label in LINEAGES]
+    # Legend title + entry labels at the facet-title size (10) for consistency.
+    legend_kw = {**LEGEND_KW, "fontsize": 10, "title_fontsize": 10}
     fig.legend(
-        lineage_handles, lineage_labels, ncol=3, title="model mixture lineage",
-        loc="upper center", bbox_to_anchor=(0.5, 0.06), **LEGEND_KW,
+        lineage_handles, lineage_labels, ncol=3, title="mixture strategy",
+        loc="upper center", bbox_to_anchor=(0.5, 0.06), **legend_kw,
     )

@@ -17,27 +17,27 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
   - ~25M params, 2.5B tokens, 16k batch (~4e17 FLOPs/run)
 - Explain transfer validation
   - 10B tokens, 4k batch (~6.8e19 FLOPs/run); 76 runs across 255M/476M/1B scales (~2.9e21 FLOPs total)
-  - Show Figure 1 (LR transfer) and Figure 2 (beta2 + epsilon)
+  - Show `figure1_lr_transfer` (LR transfer) and `figure2_beta2_epsilon_transfer` (beta2 + epsilon)
   - LR is far more sensitive
     - Explain what this means for trying to run experiments w/o scaling LR based on tokens
-  - Show Figure 3 (validation by region)
+  - Show `figure3_region_hyper_transfer` (validation by region)
 
 ## Parameter Scaling
 
 - 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep)
-  - Show Figure 4
+  - Show `figure4_loss_scaling`
 - Loss scaling is smooth and fits to standard Kaplan laws well
 
 ## Downstream Performance
 
 - As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning and scaling law results
-  - Show Figure 5
+  - Show `figure5_params_vs_vep_auprc`
 - Loss correlation is weak
-  - Show Figure 6
+  - Show `figure6_loss_vs_vep_auprc`
 - Notably, VEP performance degrades at the largest model scales with more tokens
-  - Show Figure 7
+  - Show `loss_vs_traitgym_curves`
 - However, we can see that VEP performance scales more monotonically within a range of model sizes
-  - Show Figure 8
+  - Show `loss_vs_traitgym_correlation`
 
  ## Mixture Experiments
 
@@ -49,7 +49,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 - We begin by training at 1B params on a uniform mixture of the same 3-region, animal sequences used previously
   - By ~50B tokens, this demonstrated saturation on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone
   - We then test shifts in mixture weights to identify whether or not upstream task performance can be improved without sacrificing performance on others
-  - Show Figure 9
+  - Show `figure7_upstream_mix_auprc`
   - Upstream task gains are easily undone by performance lost on other tasks 
     - Similar experiments starting from models trained only on upstream data or from proportionally weighted checkpoints instead yielded no clear net-wins
   - Conclusion: improving zero-shot performance mid-flight is not really possible with non-uniform weighting of **existing** mixture components
@@ -58,13 +58,14 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
   - Surprisingly, this improves upstream task performance significantly (promoter VEP from 30%->40%) and very drastically improves distal task performance (ncRNA exon variants from 19%->65% and enhancer variants from 14%->33%) while mostly keeping performance on other tasks fixed
   - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens) followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens)
     - This outperforms de novo training on the 5-region mixture
+  - Show `figure9_lineage_vep_trajectory`
   - Conclusion: improving zero-shot performance mid-flight is possible by adding **new**, uniformly-weighted mixture components
     
 
 ## Conclusion
 
 - Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24)
-  - Show Figure 10
+  - Show `figure8_leaderboard_heatmap`
 - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
 - Ongoing work will hopefully yield a more consistent, effective training strategy

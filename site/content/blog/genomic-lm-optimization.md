@@ -145,6 +145,11 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
   - Surprisingly, this improves upstream task performance significantly (promoter VEP 30% → 40%) and very drastically improves distal task performance (ncRNA exon variants 19% → 65%, enhancer variants 14% → 33%), while mostly holding performance on other tasks fixed.
   - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).
     - This outperforms de novo training on the 5-region mixture.
+
+![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure9_lineage_vep_trajectory.svg)
+
+**Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages (macro average highlighted, top-left). The dashed line marks where the best recipe (m5.1) shifts from a 3-region to a 5-region mixture — the inflection in the distal and non-coding-exon panels.
+
 - Conclusion: improving zero-shot performance mid-flight **is** possible by adding **new**, uniformly-weighted mixture components.
 
 ## Conclusion
@@ -153,7 +158,7 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure8_leaderboard_heatmap.svg)
 
-**Figure 10:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
+**Figure 11:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
 
 - This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.
   - Many less successful attempts are not mentioned here but are documented at [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
