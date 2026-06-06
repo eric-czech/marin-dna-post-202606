@@ -72,7 +72,7 @@ LINEAGE_COLORS = {leaf: EARTH_QUAL[i] for i, (leaf, _) in enumerate(LINEAGES)}
 
 # Accent + fill for the highlighted macro-average panel.
 MACRO_ACCENT = "#5e3418"
-MACRO_FILL = "#efe6d2"
+MACRO_FILL = "#f1ece0"
 
 
 def _metric_col(subset: str) -> str:
@@ -271,7 +271,7 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
             ax.axvline(shift_x, color="0.35", ls=(0, (4, 2)), lw=1.0, zorder=1)
             if is_macro:
                 ax.text(
-                    0.805, 0.10, "m5.1 3→5 region\nmixture shift", transform=ax.transAxes,
+                    0.825, 0.10, "m5.1 3→5 region\nmixture shift", transform=ax.transAxes,
                     ha="center", va="bottom", fontsize=7.5, color="0.35", zorder=4,
                     linespacing=1.2,
                 )
@@ -304,7 +304,7 @@ def _highlight_macro(ax, title: str) -> None:
         (0, 0), 1, 1, transform=ax.transAxes, facecolor=MACRO_FILL,
         edgecolor="none", zorder=-10,
     ))
-    ax.set_title(title, fontsize=11, fontweight="bold", color=MACRO_ACCENT, pad=3)
+    ax.set_title(title, fontsize=11, fontweight="bold", pad=3)
     # Thicker accent border on all sides to emphasize the macro panel.
     for spine in ax.spines.values():
         spine.set_color(MACRO_ACCENT)
