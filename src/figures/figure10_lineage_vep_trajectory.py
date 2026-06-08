@@ -184,7 +184,7 @@ def _validate_consistency(
 # Gaussian-kernel smoother bandwidth, as a multiple of the median point spacing.
 # Larger → smoother. ~2.5× the eval cadence reads as a clean trend without
 # erasing real structure.
-SMOOTH_BANDWIDTH_MULT = 2.5
+SMOOTH_BANDWIDTH_MULT = 1.8
 SMOOTH_GRID = 200
 
 
