@@ -43,17 +43,18 @@ MIXTURE_EXCLUDE: frozenset[str] = frozenset({"cont_ps_up_down_1"})
 # scaled by run_progress downstream (see figures/appendix/mixture_tree.py) since
 # it never completed training.
 #
-# In-flight zoonomia continuation chains (5.1/5.1.1, 6.1/6.1.1 in the lineage):
-# these run on preemptible VMs and routinely show as `crashed` between resumes,
-# but they're expected to eventually complete. We include them despite partial
-# completion so Figure 9 (and the mixture tree) can show their composed
-# trajectory as it accrues; their token counts are run_progress-scaled like
-# cds_only, and a run that has not yet logged any eval simply contributes no
-# trajectory points. m1.1 is typically `finished` already but is listed here so
-# the chain is included as a unit regardless of each leg's momentary state.
+# In-flight zoonomia continuation chains (trees 5 and 6 in the lineage): these run
+# on preemptible VMs and routinely show as `crashed`/`running` between resumes, but
+# they're expected to eventually complete. We include them despite partial
+# completion so Figure 10 (and the mixture tree) can show their composed trajectory
+# as it accrues; their token counts are run_progress-scaled like cds_only, and a run
+# that has not yet logged any eval simply contributes no trajectory points. Earlier
+# legs are typically `finished` already but are listed here so each chain is
+# included as a unit regardless of any leg's momentary state. The terminal legs
+# (m1.3 / m3.3) are the current ends of the two chains.
 MIXTURE_INFLIGHT: frozenset[str] = frozenset({
-    "exp135-zoonomia-m1.1", "exp135-zoonomia-m1.2",
-    "exp135-zoonomia-m3.1", "exp135-zoonomia-m3.2",
+    "exp135-zoonomia-m1.1", "exp135-zoonomia-m1.2", "exp135-zoonomia-m1.3",
+    "exp135-zoonomia-m3.1", "exp135-zoonomia-m3.2", "exp135-zoonomia-m3.3",
 })
 MIXTURE_INCLUDE_UNFINISHED: frozenset[str] = frozenset({"cds_only"}) | MIXTURE_INFLIGHT
 

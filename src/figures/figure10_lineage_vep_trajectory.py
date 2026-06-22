@@ -6,8 +6,8 @@ Three model lineages, each three training stages warm-started in sequence, are
   - m5.1  : 1·L uniform → 1.7·L uniform → 1.7.2·L +zoonomia (warm-started from the
             parent's FINAL, fully-cooled checkpoint — a fresh rewarmup with no
             overlapping tokens).
-  - m1.2  : 5·L → 5.1·L → 5.1.1·L  (zoonomia uniform ⅕; a pre-cooldown chain).
-  - m3.2  : 6·L → 6.1·L → 6.1.1·L  (zoonomia upstream-tilted; a pre-cooldown chain).
+  - m1.3  : 5·L → 5.1·L → 5.1.1·L → 5.1.1.1·L  (zoonomia uniform ⅕; pre-cooldown chain).
+  - m3.3  : 6·L → 6.1·L → 6.1.1·L → 6.1.1.1·L  (zoonomia upstream-tilted; pre-cooldown chain).
 
 Composition rule (the whole point of this figure): a continuation that branched
 BEFORE its parent's cooldown shares the parent's W&B step counter, so the parent's
@@ -27,9 +27,9 @@ count (cumulative tokens ÷ tokens-per-step), i.e. total optimizer steps along t
 composed path — which is NOT the leaf run's raw W&B `_step` whenever an earlier
 phase reset its counter (e.g. the HF-reinit of `uniform_to_uniform_1`).
 
-m1.2 / m3.2 are still in flight on preemptible VMs and may log no evals yet; the
-leaf stage then simply contributes no points and the curve extends automatically
-once they resume (re-run `src/data.py`).
+The terminal m1.3 / m3.3 legs may still be in flight on preemptible VMs and may log
+few evals yet; the leaf stage then simply contributes few/no points and the curve
+extends automatically once they resume (re-run `src/data.py`).
 """
 
 from __future__ import annotations
@@ -65,8 +65,8 @@ ALL_SUBSETS = tuple(s for s, _ in METRIC_PANELS)
 # The three lineages, keyed by leaf `mix`; color + display label per lineage.
 LINEAGES: tuple[tuple[str, str], ...] = (
     ("exp135-zoonomia-m5.1", "m5.1"),
-    ("exp135-zoonomia-m1.2", "m1.2"),
-    ("exp135-zoonomia-m3.2", "m3.2"),
+    ("exp135-zoonomia-m1.3", "m1.3"),
+    ("exp135-zoonomia-m3.3", "m3.3"),
 )
 LINEAGE_COLORS = {leaf: EARTH_QUAL[i] for i, (leaf, _) in enumerate(LINEAGES)}
 

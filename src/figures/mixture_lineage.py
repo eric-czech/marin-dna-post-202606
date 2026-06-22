@@ -27,22 +27,24 @@ Branch types and token accounting:
   precede every branch point).
   Note: most pre_cooldown branches sit at exactly 0.8 of the parent (the marin
   `ResumeBeforeCooldown(cooldown_fraction=0.2)` branch point), so the flat 0.8 is
-  used for them. The CHAINED zoonomia continuations (5.1.1 / 6.1.1, i.e.
-  exp135-zoonomia-m{1,3}.2) instead fork at ~0.60 of their parent's own tokens —
-  before the parent's own cooldown but well short of 0.8 — so they carry an
-  explicit `keep_fraction` override. This keeps both the cumulative-token
-  accounting (Appendix mixture tree) and the composed trajectory (Figure 9, which
-  truncates each parent phase at its child's `keep_fraction`) faithful to the
-  true fork point. One older pre_cooldown branch (1.7.1) actually sits at ~68% of
-  its parent but is left at the flat 0.8 for back-compat with the published tree.
+  used for them. The CHAINED zoonomia continuations fork progressively earlier than
+  0.8 of their parent's own tokens — exp135-zoonomia-m{1,3}.2 at ~0.60 and the
+  terminal m{1,3}.3 at ~0.40 — before the parent's own cooldown but short of 0.8,
+  so they carry an explicit `keep_fraction` override. This keeps both the
+  cumulative-token accounting (Appendix mixture tree) and the composed trajectory
+  (Figure 10, which truncates each parent phase at its child's `keep_fraction`)
+  faithful to the true fork point. One older pre_cooldown branch (1.7.1) actually
+  sits at ~68% of its parent but is left at the flat 0.8 for back-compat with the
+  published tree.
 
-The lineages composed in Figure 9 (root -> leaf, each three training stages):
-  - 1·L -> 1.7·L -> 1.7.2·L         (uniform -> uniform_to_uniform_1 -> m5.1;
-                                     leaf warm-starts from the parent's FINAL ckpt)
-  - 5·L -> 5.1·L -> 5.1.1·L         (m1 -> m1.1 -> m1.2; pre_cooldown chain)
-  - 6·L -> 6.1·L -> 6.1.1·L         (m3 -> m3.1 -> m3.2; pre_cooldown chain)
-m1.2 / m3.2 are still in flight on preemptible VMs (see src/data.py) and may have
-few or no eval points logged yet; downstream code tolerates partial runs.
+The lineages composed in Figure 10 (root -> leaf):
+  - 1·L -> 1.7·L -> 1.7.2·L              (uniform -> uniform_to_uniform_1 -> m5.1;
+                                          leaf warm-starts from the parent's FINAL ckpt)
+  - 5·L -> 5.1·L -> 5.1.1·L -> 5.1.1.1·L (m1 -> m1.1 -> m1.2 -> m1.3; pre_cooldown chain)
+  - 6·L -> 6.1·L -> 6.1.1·L -> 6.1.1.1·L (m3 -> m3.1 -> m3.2 -> m3.3; pre_cooldown chain)
+The terminal m1.3 / m3.3 legs may still be in flight on preemptible VMs (see
+src/data.py) and may have few or no eval points logged yet; downstream code
+tolerates partial runs.
 """
 
 from __future__ import annotations
@@ -119,9 +121,11 @@ LINEAGE: tuple[Run, ...] = (
     Run("3·L", "cds_only", {"cds": 1.0}, None, "root"),
     Run("4·S", "downstream_only", {"downstream": 1.0}, None, "root"),
     # Tree 5 — zoonomia uniform (CUDNE ⅕) base, then a pre_cooldown continuation
-    # chain (m1 -> m1.1 -> m1.2). m1.1 forks at 0.8 of m1; m1.2 forks at 0.60 of
-    # m1.1's own tokens (step 41412 of [23664, 53244]) — before m1.1's own
-    # cooldown but short of 0.8, hence the explicit keep_fraction.
+    # chain (m1 -> m1.1 -> m1.2 -> m1.3). The forks step progressively earlier into
+    # each parent's own tokens: m1.1 at 0.8 of m1; m1.2 at 0.60 of m1.1's own (step
+    # 41412 of [23664, 53244]); m1.3 at 0.40 of m1.2's own (step 53244 of
+    # [41412, 70992]) — all before the parent's own cooldown but short of 0.8,
+    # hence the explicit keep_fraction overrides. m1.3 is the terminal leg.
     Run("5·L", "exp135-zoonomia-m1",
         {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
         None, "root"),
@@ -131,9 +135,13 @@ LINEAGE: tuple[Run, ...] = (
     Run("5.1.1·L", "exp135-zoonomia-m1.2",
         {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
         "exp135-zoonomia-m1.1", "pre_cooldown", keep_fraction=0.60),
+    Run("5.1.1.1·L", "exp135-zoonomia-m1.3",
+        {"cds": _FIFTH, "upstream": _FIFTH, "downstream": _FIFTH, "ncrna_exon": _FIFTH, "ccre_non_promoter": _FIFTH},
+        "exp135-zoonomia-m1.2", "pre_cooldown", keep_fraction=0.40),
     # Tree 6 — zoonomia upstream-tilted (U25, CDNE 0.1875) base, then a pre_cooldown
-    # continuation chain (m3 -> m3.1 -> m3.2), mirroring tree 5. m3.2 forks at 0.60
-    # of m3.1's own tokens (step 41405 of [23660, 53239]).
+    # continuation chain (m3 -> m3.1 -> m3.2 -> m3.3), mirroring tree 5. m3.2 forks at
+    # 0.60 of m3.1's own (step 41405 of [23660, 53239]); m3.3 at 0.40 of m3.2's own
+    # (step 53235 of [41405, 70984]). m3.3 is the terminal leg.
     Run("6·L", "exp135-zoonomia-m3",
         {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
         None, "root"),
@@ -143,6 +151,9 @@ LINEAGE: tuple[Run, ...] = (
     Run("6.1.1·L", "exp135-zoonomia-m3.2",
         {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
         "exp135-zoonomia-m3.1", "pre_cooldown", keep_fraction=0.60),
+    Run("6.1.1.1·L", "exp135-zoonomia-m3.3",
+        {"cds": 0.1875, "upstream": 0.25, "downstream": 0.1875, "ncrna_exon": 0.1875, "ccre_non_promoter": 0.1875},
+        "exp135-zoonomia-m3.2", "pre_cooldown", keep_fraction=0.40),
 )
 
 BY_MIX: dict[str, Run] = {r.mix: r for r in LINEAGE}
