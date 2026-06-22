@@ -1,12 +1,6 @@
-## Intro
+## Misc
 
 - The large majority (~80%) of compute resources required to train a modern LLM result from experimentation, not final models [https://arxiv.org/abs/2605.01158]
-- This means that if you want to build a language model, then you are likely to spend most of your time trying to determine:
-  1. The influence of a single design choice in isolation
-  2. How to actually isolate that choice
-  3. Whether or not that choice will scale
-- This experimentation frequently needs to compare results across different parameter, token and/or batch scales
-- Scaling Laws are one obvious example for this kind of experimentation, as discussed in https://9dca63b0.openathena-ai.pages.dev/blog/delphi
 - Scaling laws ideally require training at optimal configurations for all scales 
   - Results can be significantly different otherwise
     - Cite https://arxiv.org/pdf/2406.19146
@@ -15,27 +9,17 @@
       - "The optimal learning rate follows a power-law relationship with N
 and D, while the optimal batch size is primarily influenced by D and remains
 largely invariant to N"
-- Transfer is one way to accomplish this; Hyperball and Complete(d) make this possible
-- WIP
-
+- Potential technical nuances of running scaling law experiments
+  - Batch sizing for the sake of experiment throughput
+  - Batch size exceeds HBM later in training
+  - Switch hardware with different HBM capacity?
+- On expense of scaling law experiments:
+  - https://arxiv.org/pdf/2604.22753
+  - "Scaling laws are used to plan multi-million-dollar training runs, but fitting those laws can itself cost millions"
+  - "At industrial scale, the pilot runs needed just to fit a scaling law can themselves consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
 
 ## TODO
 
-- Frame as post on technical nuances of running scaling law experiments
-  - Experimentation is most of the work so how do you make that experimentation robust to changing capacity and experiment designs?
-    - Batch sizing for the sake of experiment throughput is a big advantage
-    - It is otherwise necessary to constantly be retuning
-    - References:
-      - https://arxiv.org/pdf/2604.22753
-        - "Scaling laws are used to plan multi-million-dollar training runs, but fitting those laws can itself cost millions"
-        - "At industrial scale, the pilot runs needed just to fit a scaling law can themselves
-consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
-  - Discuss how transfer helps
-  - What if a batch size exceeds HBM later in training?
-  - What if you have to switch hardware with different HBM capacity?
-- Find and discuss references on confounding in scaling laws from lack of tuning
-- Add token counts to transfer figures to make scale clear
-    - See stats/sweeps below
 - Compare predicted hypers at 1e23 scale to text models at that scale
 - Create a table containing best hypers by FLOP and token count as a guideline for others 
     - Start with this to make it clear that transfer is a function of tokens
