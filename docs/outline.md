@@ -3,9 +3,9 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Introduction
 
-- Optimization of genomic language models (gLMs) historically focuses a lot on the importance of model architecture
+- Optimizating of genomic language models (gLMs) historically involves a lot of focus on model architecture
   - Examples:
-    - Long convolutions [hyenadna, evo2], U-Nets [ntv3], bi-directionality [dnabert2, ukbiobert, caduceus, plantcad2, trinitydna], state-space layers [hybridna, caduceus, plantcad2], less proven adademic MoE models [janusdna, plantbimoe, mxdna]
+    - Long convolutions [hyenadna, evo2], U-Nets [ntv3], bi-directionality [dnabert2, genalm, caduceus, plantcad2, trinitydna], state-space layers [hybridna, caduceus, plantcad2], less proven adademic MoE models [janusdna, plantbimoe, mxdna]
     - Tokenizer-free methods [dnahnet, dnachunker], multi-scale Transformers [megadna], multi-scale attention [trinitydna]
     - reverse-complement equivariance [caduceus], double-helix groove fusion [trinitydna], genomic loss weighting [evo2, gpn] and factorization schemes [generatorv2, carbon]
     - Other notable architectural improvements outside of single-sequence DNA gLMs include the convolutional U-Net Transformer + pairwise contact map model of AlphaGenome [alphagenome] and sequence alignment + phylogeny-aware attention of GPN-Star [gpnstar]
