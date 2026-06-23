@@ -3,13 +3,46 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Introduction
 
-- This post is about how novel data curation strategies (from Gonzalo) can be paired with standard LLM training infrastructure and methods to build highly competitive gLMs
-- This post is NOT about how to do so systematically; it is a patchwork of experiments that connected in unexpected ways to prove something difficult is at least possible
+- Optimization of genomic language models (gLMs) historically focuses a lot on the importance of model architecture
+  - Examples:
+    - Long convolutions [hyenadna, evo2], U-Nets [ntv3], bi-directionality [dnabert2, ukbiobert, caduceus, plantcad2, trinitydna], state-space layers [hybridna, caduceus, plantcad2], less proven adademic MoE models [janusdna, plantbimoe, mxdna]
+    - Tokenizer-free methods [dnahnet, dnachunker], multi-scale Transformers [megadna], multi-scale attention [trinitydna]
+    - reverse-complement equivariance [caduceus], double-helix groove fusion [trinitydna], genomic loss weighting [evo2, gpn] and factorization schemes [generatorv2, carbon]
+    - Other notable architectural improvements outside of single-sequence DNA gLMs include the convolutional U-Net Transformer + pairwise contact map model of AlphaGenome [alphagenome] and sequence alignment + phylogeny-aware attention of GPN-Star [gpnstar]
+  - Most of these innovations or adaptations, often from text and vision domains, are geared towards increasing efficiency of long context learning and grammatical structure inherent to reference genomes spanning many species
+- In this work, we question the need for the vast majority of these inductive biases when focusing on a single high-impact downstream use case like human variant effect prediction (VEP)
+  - Arguably, this is the most important application of gLMs likely to be successfully operationalized in the near future
+  - It supports several commercially useful activities like target selection for new therapeutics, patient diagnostics, and clinical trial design (e.g. through enrollment critiera and risk stratification)
+- We show this is the case by combining more principled, theoretically-grounded scaling practices we've used previously in language modeling [delphi / https://openathena.ai/blog/delphi/] with some ad-hoc YOLO experiments to fill gaps where these methods break down on our task
+  - This hybrid approach allowed us to prove that a difficult thing, i.e. surpassing Evo 2 40B with 1.8% as many training tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24) is at least possible
 
+- Why are we defining the "hard thing" based on Evo 2 40B?
+  - Evo 2 40B is the most formidable baseline among unsupervised, single-sequence DNA models
+    - E.g. AlphaGenome is better, but it is not an unsupervised model and requires non-genomic data modalities
+      - Similarly, GPN-Star is also better but requires input sequence alignment and a bespoke architecture
+    - To our knowledge, no prior methods have demonstrated comparable performance to this baseline across diverse, conserved genomic regions, e.g. non-coding enhancers, promoters, UTRs and coding exons or introns.
+  - Its 9.3T token, 2.25e24 FLOPs training budget is still unrivaled
+    - Compare this training FLOP budget to leading LLMs
+      - See @training-flops-vs-evo2.md
+      - Describe how 2.25e24 is over/under model family generations, e.g.:
+        - Over DeepSeek-V2 but not V3, Over Gemma 2 but not Gemma 3
+
+- We demonstrate that with standard autoregressive decoder models (Qwen3 in this case), tiny context windows (256bp @ single-bp resolution) and careful data curation alone, you can surpass Evo 2 40B on **zero-shot** VEP performance
+  - Emphasis is on zero-shot here because supervised approaches introduce far more potential for leakage across splits
+  - A lot of precedent actually exists for this "dumb" modeling approach, i.e. single-sequence, decoder-only, autogressive gLMs on stock architectures like Llama, Mistral or GPT
+  - Notable well-resourced prior art from industry-academia collaborations or lone corporations includes Carbon [carbon] (Hugging Face), METAGENE-1 [metagene] (PrimeIntellect), GenSLM [genslm] (Cerebras), Gene42 [gene42] (Inception, M42), GENERator v1 [generator-v1] / v2 [generator-v2] (Alibaba), and DNAGPT [dnagpt] (Tencent)
+  - Of these, only Carbon, GENERator, Gene42 and DNAGPT are relevant for human DNA
+    - None of them report performance vs Evo 2 40B on zero-shot variant prioritization and instead don't compare to Evo directly or focus on trying to reach parity with smaller Evo 2 models like 7B or 20B
+    - E.g. CARBON (3B and 8B) demonstrates lower performance on Mendelian (TraitGym) and coding ClinVar variant prioritization vs Evo 2 7B, and small gains on ClinVar non-coding variants
+
+- Importantly, this enables construction of gLMs that can be deployed for inference cost-effectively and with good support across hardware and software stacks
+   - E.g. just using raw PyTorch or JAX would be reasonable, as would using familiar training frameworks with inference support (Hugging Face Transformers, PyTorch Lightning, Levanter) or inference-optimized libraries (vllm, sglang)
+   - For example, all of the evaluations run below on our 1B model are done with Levanter across various generations of TPUs with a throughput of approximately 50k tokens / sec / H100 equivalent; compare this to Evo 2 40B which runs at just 5k tokens / sec / H100 equivalent
+     - TODO: get actual numbers for this (50k vs 5k is just a placeholder)
 
 ## Hyperparameter Transfer
 
-- Cite Delphi post
+- Following the Delphi [delphi] scaling recipe, we began by determining whether or not its possible to transfer hyperparameters across model size, token count and batch size
 - Explain proportional data mix
   - Spans 3 genomic regions (CDS, upstream, downstream): ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species
   - Proportional mix avoids conflation with epoching effects; each region is cycled only once
@@ -25,6 +58,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Parameter Scaling
 
+- Hyperparameter transfer allows us to much more accurately estimate model scaling
 - 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep)
   - Show `figure4_loss_scaling`
 - Loss scaling is smooth and fits to standard Kaplan laws well
@@ -65,8 +99,11 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Conclusion
 
-- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24)
+- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T), ~0.05% as many FLOPs (1.1e21 vs 2.25e24) and X% greater inference throughput
+  - TODO: again, need those throughput numbers
   - Show `figure11_leaderboard_heatmap`
-- This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
+- We believe a fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a signifcant contribution to the field
+  - We show here how to check most of these boxes; however, "easy-to-replicate" is still a work in progress
+  - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
-- Ongoing work will hopefully yield a more consistent, effective training strategy
+- Ongoing work will hopefully yield a more consistent, effective training strategy and even greater quality gains
