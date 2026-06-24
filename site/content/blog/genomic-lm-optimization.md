@@ -54,7 +54,19 @@ How Marin can be used to train single-sequence, vanilla Transformer gLMs compara
 
 ## Introduction
 
-Optimization of genomic language models (gLMs) has historically involved a lot of focus on model architecture. At a high level, the field has explored general-purpose architecture substitutions imported from language and vision, modeling choices that make raw DNA tractable at long context, and genomics-specific priors that encode biological symmetries, structure, or evolution.[^glm-architecture][^glm-tokenization][^glm-biology] In this work, we question the need for the vast majority of these inductive biases when focusing on one high-impact downstream use case: human variant effect prediction (VEP). Arguably, this is the most important gLM application likely to be operationalized in the near future. It is directly connected to commercially useful activities like target selection, patient diagnosis, and clinical-trial design through genotype-informed enrollment criteria and risk stratification. We show that combining the theoretically grounded scaling practices we used in [Delphi](https://openathena.ai/blog/delphi/) with more targeted genomic data curation and less-principled, ad-hoc mixture experiments can surpass Evo 2 40B on zero-shot human VEP with 1.8% as many training tokens (166B vs. 9.3T) and roughly 0.05% as many FLOPs (1.1e21 vs. 2.25e24).
+Optimization of genomic language models (gLMs) has historically involved a lot of focus on model architecture. At a high level, the field has explored architecture ideas borrowed from language and vision, methods for making raw DNA usable at long context, and genomics-specific priors that encode biological symmetries, structure, or evolution.[^glm-architecture][^glm-tokenization][^glm-biology] Our result pushes against the idea that these inductive biases are necessary for the most important near-term gLM use case. For zero-shot human variant effect prediction (VEP), a standard decoder-only autoregressive model can surpass Evo 2 40B when it is paired with focused data curation, the scaling practices we used in [Delphi](https://openathena.ai/blog/delphi/), and a set of less-principled ad-hoc runs where the cleaner recipe stopped being enough. The final model reaches this result with 1.8% as many training tokens (166B vs. 9.3T) and roughly 0.05% as many FLOPs (1.1e21 vs. 2.25e24).
+
+### Why VEP?
+
+VEP is where gLMs are most likely to matter first. A useful VEP model helps decide which genetic variants deserve attention in rare-disease diagnosis, hereditary cancer interpretation, VUS triage, fine-mapped GWAS follow-up, target selection, patient stratification, and trial enrollment. These are already high-value decisions across medicine and drug discovery, and they are often limited by sparse labels, incomplete assays, and uneven functional annotation. That makes VEP a natural test for unsupervised genomic modeling. If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is thin.
+
+### Why Evo 2 40B?
+
+Evo 2 40B is the hardest relevant baseline among unsupervised, single-sequence DNA models. Stronger models exist for some variant-effect settings, but they usually change the problem. AlphaGenome uses supervised functional genomics signals. GPN-Star uses alignments, species trees, and a bespoke evolutionary architecture. Evo 2 40B is different. It is a very large DNA-only model, trained from sequence alone, with broad zero-shot VEP results and an unusually large training budget. That makes it the right baseline for asking whether a much simpler single-sequence gLM can compete.
+
+### Why Decoder-Only Autoregressive Models?
+
+A decoder-only autoregressive Transformer is the simplest serious test of whether architecture is actually the bottleneck. It is not biologically elegant, but it is standard, scalable, and easy to run across existing training and inference stacks. With the right data, transferable hyperparameters, and targeted ad-hoc mixture experiments, that turns out to be enough. The practical upside is large. Smaller standard models are cheaper to serve, easier to reproduce, easier to move across hardware, and less dependent on custom kernels or model-specific infrastructure.
 
 [^glm-architecture]: Examples include long-convolution or hybrid long-context models such as [HyenaDNA](https://arxiv.org/abs/2306.15794) and [Evo 2](https://doi.org/10.1101/2025.02.18.638918); U-Net-like sequence-function models such as [NTv3](https://doi.org/10.64898/2025.12.22.695963); bidirectional models such as [DNABERT-2](https://arxiv.org/abs/2306.15006), [GenSLM](https://www.biorxiv.org/content/10.1101/2023.06.12.544594v3.full.pdf), [Caduceus](https://arxiv.org/abs/2403.03234), [PlantCAD2](https://doi.org/10.1101/2025.08.27.672609), and [TrinityDNA](https://arxiv.org/abs/2507.19229); state-space or hybrid state-space models such as [HybriDNA](https://arxiv.org/abs/2502.10807), [Caduceus](https://arxiv.org/abs/2403.03234), and [PlantCAD2](https://doi.org/10.1101/2025.08.27.672609); and early or less-established sparse-expert models such as [JanusDNA](https://arxiv.org/abs/2505.17257), [PlantBiMoE](https://arxiv.org/abs/2512.07113), and [MxDNA](https://arxiv.org/abs/2412.13716).
 
@@ -62,7 +74,9 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 [^glm-biology]: Examples include reverse-complement equivariance in [Caduceus](https://arxiv.org/abs/2403.03234), double-helix groove fusion in [TrinityDNA](https://arxiv.org/abs/2507.19229), genomic loss weighting in [Evo 2](https://doi.org/10.1101/2025.02.18.638918) and [GPN](https://www.pnas.org/doi/10.1073/pnas.2311219120), factorized nucleotide supervision in [GENERATOR-v2](https://doi.org/10.64898/2026.01.27.702015) and related objective design in [Carbon](https://doi.org/10.64898/2026.05.22.727119). Outside unsupervised, single-sequence DNA language modeling, related architectural examples include the convolutional U-Net Transformer plus pairwise contact-map model in [AlphaGenome](https://doi.org/10.1101/2025.06.25.661532) and sequence-alignment plus phylogeny-aware attention in [GPN-Star](https://doi.org/10.1101/2025.09.21.677619).
 
-## Hyperparameter Transfer
+## Results
+
+### Hyperparameter Transfer
 
 - Cite the Delphi post.
 - Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.
@@ -91,7 +105,7 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 </details>
 
-## Parameter Scaling
+### Parameter Scaling
 
 - 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep).
 
@@ -101,7 +115,7 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 - Loss scaling is smooth and fits standard Kaplan laws well.
 
-## Downstream Performance
+### Downstream Performance
 
 - As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.
 
@@ -127,7 +141,7 @@ Optimization of genomic language models (gLMs) has historically involved a lot o
 
 **Figure 8:** Loss vs VEP AUPRC correlation within model-size ranges.
 
-## Mixture Experiments
+### Mixture Experiments
 
 - To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.
   - Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).

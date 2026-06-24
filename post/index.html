@@ -116,8 +116,15 @@
 <p><em>Draft — prose is intentionally skeletal pending a full write-up.</em></p>
 <p>How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers hyperparameter transfer, scaling-law, and training-mixture experiments.</p>
 <h2>Introduction</h2>
-<p>Optimization of genomic language models (gLMs) has historically involved a lot of focus on model architecture. At a high level, the field has explored general-purpose architecture substitutions imported from language and vision, modeling choices that make raw DNA tractable at long context, and genomics-specific priors that encode biological symmetries, structure, or evolution.<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup><span class="fn-comma">,</span><sup class="footnote-ref" id="fnref-2"><a href="#fn-2">2</a></sup><span class="fn-comma">,</span><sup class="footnote-ref" id="fnref-3"><a href="#fn-3">3</a></sup> In this work, we question the need for the vast majority of these inductive biases when focusing on one high-impact downstream use case: human variant effect prediction (VEP). Arguably, this is the most important gLM application likely to be operationalized in the near future. It is directly connected to commercially useful activities like target selection, patient diagnosis, and clinical-trial design through genotype-informed enrollment criteria and risk stratification. We show that combining the theoretically grounded scaling practices we used in <a href="https://openathena.ai/blog/delphi/">Delphi</a> with more targeted genomic data curation and less-principled, ad-hoc mixture experiments can surpass Evo 2 40B on zero-shot human VEP with 1.8% as many training tokens (166B vs. 9.3T) and roughly 0.05% as many FLOPs (1.1e21 vs. 2.25e24).</p>
-<h2>Hyperparameter Transfer</h2>
+<p>Optimization of genomic language models (gLMs) has historically involved a lot of focus on model architecture. At a high level, the field has explored architecture ideas borrowed from language and vision, methods for making raw DNA usable at long context, and genomics-specific priors that encode biological symmetries, structure, or evolution.<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup><span class="fn-comma">,</span><sup class="footnote-ref" id="fnref-2"><a href="#fn-2">2</a></sup><span class="fn-comma">,</span><sup class="footnote-ref" id="fnref-3"><a href="#fn-3">3</a></sup> Our result pushes against the idea that these inductive biases are necessary for the most important near-term gLM use case. For zero-shot human variant effect prediction (VEP), a standard decoder-only autoregressive model can surpass Evo 2 40B when it is paired with focused data curation, the scaling practices we used in <a href="https://openathena.ai/blog/delphi/">Delphi</a>, and a set of less-principled ad-hoc runs where the cleaner recipe stopped being enough. The final model reaches this result with 1.8% as many training tokens (166B vs. 9.3T) and roughly 0.05% as many FLOPs (1.1e21 vs. 2.25e24).</p>
+<h3>Why VEP?</h3>
+<p>VEP is where gLMs are most likely to matter first. A useful VEP model helps decide which genetic variants deserve attention in rare-disease diagnosis, hereditary cancer interpretation, VUS triage, fine-mapped GWAS follow-up, target selection, patient stratification, and trial enrollment. These are already high-value decisions across medicine and drug discovery, and they are often limited by sparse labels, incomplete assays, and uneven functional annotation. That makes VEP a natural test for unsupervised genomic modeling. If a model has learned useful sequence-level constraints from DNA alone, it should help rank variants in places where direct experimental evidence is thin.</p>
+<h3>Why Evo 2 40B?</h3>
+<p>Evo 2 40B is the hardest relevant baseline among unsupervised, single-sequence DNA models. Stronger models exist for some variant-effect settings, but they usually change the problem. AlphaGenome uses supervised functional genomics signals. GPN-Star uses alignments, species trees, and a bespoke evolutionary architecture. Evo 2 40B is different. It is a very large DNA-only model, trained from sequence alone, with broad zero-shot VEP results and an unusually large training budget. That makes it the right baseline for asking whether a much simpler single-sequence gLM can compete.</p>
+<h3>Why Decoder-Only Autoregressive Models?</h3>
+<p>A decoder-only autoregressive Transformer is the simplest serious test of whether architecture is actually the bottleneck. It is not biologically elegant, but it is standard, scalable, and easy to run across existing training and inference stacks. With the right data, transferable hyperparameters, and targeted ad-hoc mixture experiments, that turns out to be enough. The practical upside is large. Smaller standard models are cheaper to serve, easier to reproduce, easier to move across hardware, and less dependent on custom kernels or model-specific infrastructure.</p>
+<h2>Results</h2>
+<h3>Hyperparameter Transfer</h3>
 <ul>
 <li>Cite the Delphi post.</li>
 <li>Proportional data mix: spans 3 genomic regions (CDS, upstream, downstream) — ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species.<ul>
@@ -4249,7 +4256,7 @@ z
 <figcaption><strong>Figure 3:</strong> Hyperparameter transfer validated separately for each genomic region (CDS, upstream, downstream).</figcaption></figure>
 </details>
 
-<h2>Parameter Scaling</h2>
+<h3>Parameter Scaling</h3>
 <ul>
 <li>8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep).</li>
 </ul>
@@ -5809,7 +5816,7 @@ z
 <ul>
 <li>Loss scaling is smooth and fits standard Kaplan laws well.</li>
 </ul>
-<h2>Downstream Performance</h2>
+<h3>Downstream Performance</h3>
 <ul>
 <li>As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.</li>
 </ul>
@@ -9925,7 +9932,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 8:</strong> Loss vs VEP AUPRC correlation within model-size ranges.</figcaption></figure>
-<h2>Mixture Experiments</h2>
+<h3>Mixture Experiments</h3>
 <ul>
 <li>To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.<ul>
 <li>Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).</li>
