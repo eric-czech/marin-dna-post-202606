@@ -4244,9 +4244,7 @@ z
 </details>
 
 <h3>Parameter scaling</h3>
-<ul>
-<li>8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep).</li>
-</ul>
+<p>Before asking whether better validation loss translates into better VEP performance, we first needed a clean validation-loss scaling curve. The experiment is conceptually plain. Hold the training recipe fixed, vary parameter count, and fit the resulting losses with a Kaplan-style scaling law.<sup class="footnote-ref" id="fnref-15"><a href="#fn-15">15</a></sup> Actually getting there took months between hyperparameter-transfer fitting, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 630.98375 353.013453" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Loss scaling across model sizes with Kaplan power-law fits</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -5800,9 +5798,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 4:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.</figcaption></figure>
-<ul>
-<li>Loss scaling is smooth and fits standard Kaplan laws well.</li>
-</ul>
+<p>The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is itself a useful result for DNA. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?</p>
 <h3>Downstream performance</h3>
 <ul>
 <li>As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.</li>
@@ -15797,6 +15793,7 @@ z
 <li id="fn-12"><p>This calculation uses the same $2 per H100-hour estimate as above, with draft throughput estimates of roughly 50k tokens / sec for our 1B model and 5k tokens / sec for Evo 2 40B, normalized to one H100 at peak BF16 throughput. The arithmetic is $2 / (3600 seconds x tokens / second) x 1B tokens, giving about $10 / billion tokens and $100 / billion tokens after rounding, respectively. The broader point is the order-of-magnitude usability comparison: standard GPT-style models can use common training and inference stacks such as Levanter, Hugging Face Transformers, vLLM, or SGLang, while large bespoke architectures are harder to serve and optimize.<a href="#fnref-12" class="footnote">&#8617;</a></p></li>
 <li id="fn-13"><p>The proportional mix used here spans CDS, upstream, and downstream regions, with ~331M training examples and ~85B tokens from 366,411 RefSeq accessions across ~500 animal species. Each region is cycled only once, which keeps the transfer validation from being tangled up with epoching effects.<a href="#fnref-13" class="footnote">&#8617;</a></p></li>
 <li id="fn-14"><p>Complete(d) refers to the compute-constrained hyperparameter-transfer framework described in <a href="https://arxiv.org/abs/2512.22382">Complete(d): Data-Optimizing Hyperparameter Transfer</a>.<a href="#fnref-14" class="footnote">&#8617;</a></p></li>
+<li id="fn-15"><p>This follows the empirical scaling-law setup from <a href="https://arxiv.org/abs/2001.08361">Kaplan et al.</a>, where model loss is fit as a predictable function of model size, data, and compute.<a href="#fnref-15" class="footnote">&#8617;</a></p></li>
 </ol>
 </section>
 

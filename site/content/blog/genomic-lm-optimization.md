@@ -125,13 +125,15 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 
 ### Parameter scaling
 
-- 8 model sizes (46M–4B params) at ~84B tokens each (~4.3e21 FLOPs across the sweep).
+Before asking whether better validation loss translates into better VEP performance, we first needed a clean validation-loss scaling curve. The experiment is conceptually plain. Hold the training recipe fixed, vary parameter count, and fit the resulting losses with a Kaplan-style scaling law.[^kaplan-scaling] Actually getting there took months between hyperparameter-transfer fitting, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.
 
 ![Loss scaling across model sizes with Kaplan power-law fits](/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg)
 
 **Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.
 
-- Loss scaling is smooth and fits standard Kaplan laws well.
+The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is itself a useful result for DNA. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
+
+[^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
 
 ### Downstream performance
 
