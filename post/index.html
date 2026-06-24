@@ -5798,11 +5798,9 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 4:</strong> Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.</figcaption></figure>
-<p>The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is itself a useful result for DNA. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?</p>
+<p>The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?</p>
 <h3>Downstream performance</h3>
-<ul>
-<li>As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.</li>
-</ul>
+<p>The relationship between validation loss and VEP performance is much less tidy. That is not a new or unexpected finding, but it was not obvious at the start whether better tuning and a more controlled parameter sweep would make the downstream picture less messy, and the sweep shows the same basic problem. VEP performance is not monotonic in parameter count for most variant types (Figure 5), nor does it correlate well with validation loss (Figure 6). CDS tasks peak around the middle of the sweep, upstream tasks improve more clearly with scale, and the remaining variant types are mixed.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 630.96625 214.15225" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Composite VEP AUPRC vs parameter count</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -6821,9 +6819,6 @@ L 480.414583 70.91725
  </defs>
 </svg>
 <figcaption><strong>Figure 5:</strong> Composite VEP AUPRC vs parameter count.</figcaption></figure>
-<ul>
-<li>The loss correlation is weak.</li>
-</ul>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 630.98375 368.766225" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Composite VEP AUPRC vs validation loss</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -8042,9 +8037,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
-<ul>
-<li>Notably, VEP performance degrades at the largest model scales with more tokens.</li>
-</ul>
+<p>Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially noisy, the 1B model continues to improve on several tasks, and the 4B model gets much of its missense signal early while other tasks continue moving.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 652.881525 244.580625" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>VEP AUPRC training curves by model scale</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -9132,9 +9125,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 7:</strong> VEP AUPRC training curves by model scale.</figcaption></figure>
-<ul>
-<li>However, VEP performance scales more monotonically within a range of model sizes.</li>
-</ul>
+<p>The useful finding is not that VEP becomes monotonic everywhere. It is that some model scales have a much stronger monotonic relationship between falling validation loss and improving VEP during training (Figure 8). The mid-sized models are the most reliable by this measure, while the smallest and largest scales are less consistent. That gave us a practical target range for the later experiments where we train beyond one pass through the data.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 605.827954 248.240446" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Loss vs VEP AUPRC correlation within model-size ranges</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>

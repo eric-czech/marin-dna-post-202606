@@ -131,31 +131,29 @@ Before asking whether better validation loss translates into better VEP performa
 
 **Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.
 
-The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is itself a useful result for DNA. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
+The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
 
 ### Downstream performance
 
-- As expected from prior art, parameter scaling does not yield monotonic improvements despite the tuning.
+The relationship between validation loss and VEP performance is much less tidy. That is not a new or unexpected finding, but it was not obvious at the start whether better tuning and a more controlled parameter sweep would make the downstream picture less messy, and the sweep shows the same basic problem. VEP performance is not monotonic in parameter count for most variant types (Figure 5), nor does it correlate well with validation loss (Figure 6). CDS tasks peak around the middle of the sweep, upstream tasks improve more clearly with scale, and the remaining variant types are mixed.
 
 ![Composite VEP AUPRC vs parameter count](/assets/images/blog/genomic-lm-optimization/figure5_params_vs_vep_auprc.svg)
 
 **Figure 5:** Composite VEP AUPRC vs parameter count.
 
-- The loss correlation is weak.
-
 ![Composite VEP AUPRC vs validation loss](/assets/images/blog/genomic-lm-optimization/figure6_loss_vs_vep_auprc.svg)
 
 **Figure 6:** Composite VEP AUPRC vs validation loss.
 
-- Notably, VEP performance degrades at the largest model scales with more tokens.
+Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially noisy, the 1B model continues to improve on several tasks, and the 4B model gets much of its missense signal early while other tasks continue moving.
 
 ![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg)
 
 **Figure 7:** VEP AUPRC training curves by model scale.
 
-- However, VEP performance scales more monotonically within a range of model sizes.
+The useful finding is not that VEP becomes monotonic everywhere. It is that some model scales have a much stronger monotonic relationship between falling validation loss and improving VEP during training (Figure 8). The mid-sized models are the most reliable by this measure, while the smallest and largest scales are less consistent. That gave us a practical target range for the later experiments where we train beyond one pass through the data.
 
 ![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg)
 
