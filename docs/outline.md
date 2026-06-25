@@ -13,7 +13,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 - In this work, we question the need for the vast majority of these inductive biases when focusing on a single high-impact downstream use case like human variant effect prediction (VEP)
   - Arguably, this is the most important application of gLMs likely to be successfully operationalized in the near future
   - It supports several commercially useful activities like target selection for new therapeutics, patient diagnostics, and clinical trial design (e.g. through enrollment critiera and risk stratification)
-- We show this is the case by combining more principled, theoretically-grounded scaling practices we've used previously in language modeling [delphi / https://openathena.ai/blog/delphi/] with some ad-hoc YOLO experiments to fill gaps where these methods break down on our task
+- We show this is the case by combining more principled, theoretically-grounded scaling practices we've used previously in language modeling [delphi / https://openathena.ai/blog/delphi/] with some ad hoc YOLO experiments to fill gaps where these methods break down on our task
   - This hybrid approach allowed us to prove that a difficult thing, i.e. surpassing Evo 2 40B with 1.8% as many training tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24) is at least possible
 
 - Why are we defining the "hard thing" based on Evo 2 40B?
@@ -104,7 +104,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 - We believe a fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a signifcant contribution to the field
   - We show here how to check most of these boxes; however, "easy-to-replicate" is still a work in progress
-  - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
+  - This model resulted from a messy, ad hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
 - Ongoing work will hopefully yield a more consistent, effective training strategy and even greater quality gains
 - There are several notable gaps or limitations in this research:
