@@ -104,7 +104,7 @@ We started with hyperparameter transfer for that reason. If a proven data-constr
 
 ![Adam beta2 and epsilon transfer across model scales](/assets/images/blog/genomic-lm-optimization/figure2_beta2_epsilon_transfer.svg)
 
-**Figure 2:** Adam β₂ and ε transfer across the same scales.
+**Figure 2:** Adam β₂ and ε transfer across the same scales as Figure 1.
 
 That validation is a fairly unforgiving test. If the transferred learning rate were merely close by accident, it would be surprising for it to land correctly across all three validation scales, but the prediction remains well centered at each one. For DNA, that is a pretty cool result. Prior biology foundation-model work has used μP-style transfer, but we are not aware of a DNA result showing that a more inclusive framework like Complete(d) works across token horizon and batch size, which are the axes we keep leaning on later in ad-hoc runs across epochs. The same is mostly true for the other optimizer hyperparameters too, although Adam β₂ shows some signs of being a bit aggressive at the largest scale. Figure 3 makes the same point across CDS, upstream, and downstream sequence, with no qualitative difference in transfer behavior across region types. That gives us enough confidence that the following parameter-scaling runs are at least close to optimally configured.
 
@@ -127,7 +127,7 @@ Before asking whether better validation loss translates into better VEP performa
 
 ![Loss scaling across model sizes with Kaplan power-law fits](/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg)
 
-**Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fits.
+**Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.
 
 The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
@@ -155,7 +155,7 @@ Ultimately, the most useful finding is that monotonicity is scale-dependent (Fig
 
 ![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg)
 
-**Figure 8:** Loss vs VEP AUPRC correlation within model-size ranges.
+**Figure 8:** Loss vs VEP AUPRC correlation during training. Bars show the mean Spearman ρ across variant classes for each model size; heatmap cells show the corresponding per-class correlations between validation loss and VEP AUPRC sampled over training.
 
 ### Mixture experiments
 
@@ -165,7 +165,7 @@ The first clear gap we try to correct is in upstream performance. Promoter AUPRC
 
 ![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg)
 
-**Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
+**Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted). A 40% upstream continuation gives the best net gain in this sweep, but the improvement is small relative to the added mixture complexity.
 
 A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. This led to significant gains where promoter VEP improves from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly hold. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
 
