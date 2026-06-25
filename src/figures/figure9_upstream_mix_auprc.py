@@ -1,8 +1,8 @@
-"""Figure 9: continued-pretraining mixture shift — composite VEP AUPRC vs upstream proportion.
+"""Figure 9: continued-pretraining mixture shift — macro avg VEP AUPRC vs upstream proportion.
 
 Seven `uniform_to_upstream_*` continuations (all warm-started from the 1·L
 uniform run) trained mixes from upstream-heavy (U90) down to no-upstream
-(C50/D50). We plot each run's final composite 6-task VEP AUPRC against the
+(C50/D50). We plot each run's final macro-average 6-task VEP AUPRC against the
 upstream proportion of its mix, with the 1·L uniform run's score as a dotted
 reference line. The ⅓-mix continuations (uniform_to_upstream_3.7 / 1.6·M and
 uniform_to_uniform_1 / 1.7·L) are omitted — they just repeat the uniform mixture.
@@ -15,7 +15,8 @@ import pandas as pd
 
 from figures import mixture_lineage as ml
 from figures.data import save
-from utils.figure_style import FIGURE_WIDTH, SERIES_COLOR, X_LABEL_PAD, figsize
+from utils.figure_style import FIGURE_WIDTH, X_LABEL_PAD, figsize
+from utils.figure_theme import INK
 
 # The uniform→upstream sweep (the ⅓-mix 1.6·M and 1.7·L are omitted).
 UPSTREAM_SWEEP = (
@@ -51,11 +52,11 @@ def build(df: pd.DataFrame) -> None:
     )
     ax.plot(
         xs, ys,
-        color=SERIES_COLOR, lw=1.8, marker="o", markersize=8,
-        markerfacecolor=SERIES_COLOR, markeredgecolor="k", markeredgewidth=0.5, zorder=3,
+        color=INK, lw=1.8, marker="o", markersize=8,
+        markerfacecolor=INK, markeredgecolor=INK, markeredgewidth=0.5, zorder=3,
     )
     ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
-    ax.set_ylabel("composite VEP AUPRC")
+    ax.set_ylabel("macro avg VEP AUPRC")
     ax.set_title("Continued pretraining from uniform mixture", fontsize=11)
     ax.grid(False)
 

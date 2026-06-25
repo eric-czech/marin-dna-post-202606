@@ -26,6 +26,8 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
       - See @training-flops-vs-evo2.md
       - Describe how 2.25e24 is over/under model family generations, e.g.:
         - Over DeepSeek-V2 but not V3, Over Gemma 2 but not Gemma 3
+    - Cost at 50% H100 MFU [beyondchinchilla / https://arxiv.org/abs/2401.00448] and $2 per H100-hour [olmo3 / https://arxiv.org/abs/2512.13961]
+     
 
 - We demonstrate that with standard autoregressive decoder models (Qwen3 in this case), tiny context windows (256bp @ single-bp resolution) and careful data curation alone, you can surpass Evo 2 40B on **zero-shot** VEP performance
   - Emphasis is on zero-shot here because supervised approaches introduce far more potential for leakage across splits
@@ -45,6 +47,7 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 - Following the Delphi [delphi] scaling recipe, we began by determining whether or not its possible to transfer hyperparameters across model size, token count and batch size
 - Explain proportional data mix
   - Spans 3 genomic regions (CDS, upstream, downstream): ~331M training examples / ~85B tokens from 366,411 RefSeq accessions across ~500 species
+  - All from animals dataset defined in https://github.com/Open-Athena/marin-dna/blob/a27534d104bc5c1505ab6c06e42157335ecf64ec/plots/exp58_evolutionary_timescales.py#L2
   - Proportional mix avoids conflation with epoching effects; each region is cycled only once
   - We do not yet have a mature, data-constrained hyperparameter transfer framework
 - Explain reference Vizier sweep
@@ -107,3 +110,6 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
   - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
 - Ongoing work will hopefully yield a more consistent, effective training strategy and even greater quality gains
+- Regularization is giant gap in this research, but that is difficult to tune without scaling heuristics or more compute
+  - Having narrowed the recipe now, this is more feasible in the future
+- TODO: mention this as an important demonstration of Marin for SciFMs

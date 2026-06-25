@@ -41,7 +41,8 @@ from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.eval_history import DEFAULT_MAX_GAP_FRACTION, dedup_eval_history  # noqa: E402
-from utils.figure_style import DIVERGING_CMAP, SERIES_COLOR, figsize  # noqa: E402
+from utils.figure_style import DIVERGING_CMAP, figsize  # noqa: E402
+from utils.figure_theme import INK  # noqa: E402
 from utils.pchip_interp import clean, interp_on_overlap  # noqa: E402
 from utils.savefig import save_figure  # noqa: E402
 
@@ -202,9 +203,12 @@ def plot(M: np.ndarray, row_labels: list[str], col_labels: list[str]) -> None:
 
     # --- Left: horizontal bars of row-mean ρ.
     y = np.arange(len(row_labels))
+    # Page-ink bars (warm near-black, mapped to currentColor on the web so they
+    # follow the body text and flip with light/dark) — softer than pure black and
+    # consistent with the figure set's earthy theme.
     ax_bar.barh(
         y, bar_vals,
-        color=SERIES_COLOR, edgecolor="black", linewidth=0.4, alpha=0.9,
+        color=INK, edgecolor=INK, linewidth=0.4, alpha=0.9,
     )
     ax_bar.axvline(0, color="0.4", lw=0.6)
     ax_bar.set_yticks(y)

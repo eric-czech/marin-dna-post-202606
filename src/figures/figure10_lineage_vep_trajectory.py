@@ -27,9 +27,9 @@ count (cumulative tokens ÷ tokens-per-step), i.e. total optimizer steps along t
 composed path — which is NOT the leaf run's raw W&B `_step` whenever an earlier
 phase reset its counter (e.g. the HF-reinit of `uniform_to_uniform_1`).
 
-The terminal m1.3 / m3.3 legs may still be in flight on preemptible VMs and may log
-few evals yet; the leaf stage then simply contributes few/no points and the curve
-extends automatically once they resume (re-run `src/data.py`).
+The terminal m1.3 / m3.3 legs were originally tracked while running on preemptible
+VMs; if a future refresh catches a resumed run mid-flight, the leaf stage simply
+contributes the eval points available at that time.
 """
 
 from __future__ import annotations
@@ -208,13 +208,23 @@ def _smooth_xy(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return grid, (w @ ys) / w.sum(axis=1)
 
 
-def _draw_panel(ax, subsets, results, history_df, own_full) -> None:
+def _draw_panel(ax, subsets, results, history_df, own_full, token_cutoff: float) -> None:
     """Draw the three lineage trajectories on `ax`: raw evals as dots, with a
     Gaussian-kernel-smoothed trend line over them."""
     for leaf, _ in LINEAGES:
         tokens, values = _composed_curve(leaf, subsets, results, history_df, own_full)
         if len(tokens) == 0:
             continue
+        if leaf != "exp135-zoonomia-m5.1":
+            # Truncate just past m5.1's endpoint, but keep the first eval beyond
+            # the cutoff so each trend extends one point past the shared window.
+            # (tokens is sorted ascending; argmax(~keep) is that first point, and
+            # a no-op flip on index 0 when nothing exceeds the cutoff.)
+            keep = tokens <= token_cutoff
+            keep[np.argmax(~keep)] = True
+            tokens, values = tokens[keep], values[keep]
+            if len(tokens) == 0:
+                continue
         color = LINEAGE_COLORS[leaf]
         x = tokens / 1e9
         ax.scatter(x, values, s=7, color=color, alpha=0.55, edgecolors="none", zorder=2)
@@ -226,6 +236,12 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
     results = results_df.set_index("mix")
     own_full = {m: float(results.loc[m, "tokens"]) for m in results.index}
     _validate_consistency(results, history_df, own_full)
+    m5_tokens, _ = _composed_curve(
+        "exp135-zoonomia-m5.1", ALL_SUBSETS, results, history_df, own_full
+    )
+    if len(m5_tokens) == 0:
+        raise ValueError("m5.1 has no composed eval points; cannot set Figure 10 token cutoff")
+    token_cutoff = float(np.max(m5_tokens))
 
     fig, axes = plt.subplots(3, 3, sharex=True, figsize=figsize(FIGURE_WIDTH, 9.6))
 
@@ -251,7 +267,7 @@ def build(results_df: pd.DataFrame, history_df: pd.DataFrame) -> None:
     shift_x = sum(ml.inherited_components("exp135-zoonomia-m5.1", own_full).values()) / 1e9
 
     for ax, (subsets, title, is_macro) in zip(axes.flat, panels, strict=True):
-        _draw_panel(ax, subsets, results, history_df, own_full)
+        _draw_panel(ax, subsets, results, history_df, own_full, token_cutoff)
         ax.grid(False)
         ax.margins(y=0.10)
         # Consistent tick-label size across both axes (matches the secondary

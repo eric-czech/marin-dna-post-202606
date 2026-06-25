@@ -42,9 +42,9 @@ The lineages composed in Figure 10 (root -> leaf):
                                           leaf warm-starts from the parent's FINAL ckpt)
   - 5·L -> 5.1·L -> 5.1.1·L -> 5.1.1.1·L (m1 -> m1.1 -> m1.2 -> m1.3; pre_cooldown chain)
   - 6·L -> 6.1·L -> 6.1.1·L -> 6.1.1.1·L (m3 -> m3.1 -> m3.2 -> m3.3; pre_cooldown chain)
-The terminal m1.3 / m3.3 legs may still be in flight on preemptible VMs (see
-src/data.py) and may have few or no eval points logged yet; downstream code
-tolerates partial runs.
+The terminal m1.3 / m3.3 legs were originally tracked while they were still
+running on preemptible VMs; downstream code still tolerates partial runs so the
+figure can be refreshed during transient resume states.
 """
 
 from __future__ import annotations
