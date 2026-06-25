@@ -187,7 +187,8 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 
 ## Conclusion
 
-- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).
-- This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.
-  - Many less successful attempts are not mentioned here but are documented at [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
-- Ongoing work will hopefully yield a more consistent, effective training strategy.
+A fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a significant contribution to the field. The experiments above show how to check most of those boxes with a standard GPT-style model, although easy replication is still a work in progress. The final recipe did not come from a clean, linear optimization process. It came from a messy set of ad hoc experiments that were made much more useful by the hyperparameter-transfer, scaling, and mixture tools inside Marin. Many less successful attempts are not discussed here, but they are documented in [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
+
+There are also several important gaps in the current work. The largest technical omission is regularization, which is an obvious lever for data-constrained modeling. We are still in an awkward regime between data-constrained and compute-constrained training, but now that the recipe is narrower, and with better infrastructure (TODO: link iris post) for using the Google TPU Research Cloud compute donated for these efforts, we expect regularization to matter much more in future runs. Ongoing work should also make the training strategy more consistent and, hopefully, produce further quality gains.
+
+The other major gap is attribution. It is not yet clear exactly where the largest gains are coming from, although data curation is almost certainly the biggest contributor. We have not explained those details here, but we plan to. There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.
