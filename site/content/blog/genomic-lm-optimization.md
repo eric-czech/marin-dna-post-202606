@@ -1,8 +1,8 @@
 ---
 title: "Genomic Language Model Optimization"
 slug: "genomic-lm-optimization"
-author: "TODO"
-date: 2026-06-04
+author: "Eric Czech & Gonzalo Benegas"
+date: 2026-06-25
 published: true
 math: false
 toc: true
