@@ -125,7 +125,7 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 
 ### Parameter scaling
 
-Before asking whether better validation loss translates into better VEP performance, we first needed a clean validation-loss scaling curve. The experiment is conceptually plain. Hold the training recipe fixed, vary parameter count, and fit the resulting losses with a Kaplan-style scaling law.[^kaplan-scaling] Actually getting there took months between hyperparameter-transfer fitting, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.
+Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months between fitting the hyperparameter transfer heuristic, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.
 
 ![Loss scaling across model sizes with Kaplan power-law fits](/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg)
 
@@ -147,7 +147,7 @@ The relationship between validation loss and VEP performance is much less tidy. 
 
 **Figure 6:** Composite VEP AUPRC vs validation loss.
 
-Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially disappointing given the direct relevance of coding amino-acid changes to protein-target drug development.
+Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.
 
 ![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg)
 
@@ -161,42 +161,33 @@ Ultimately, the most useful finding is that monotonicity is scale-dependent (Fig
 
 ### Mixture experiments
 
-- To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.
-  - Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).
-- This still relies on two key results from the parameter-scaling sweep:
-  - Hyperparameter-transfer scaling heuristics, to configure runs with very different token horizons.
-  - A 1B target scale — the largest model that still exhibited high VEP monotonicity.
-- We begin by training at 1B params on a uniform mixture of the same 3-region animal sequences used previously.
-  - By ~50B tokens, this saturated on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone.
-  - We then test shifts in mixture weights to see whether upstream task performance can be improved without sacrificing the others.
+At this point we move away from theoretically-grounded, compute-constrained methods. The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity. But the actual optimization problem becomes much more ad hoc -- we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.
+
+The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.[^upstream-only-issue] A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. Figure 9 shows the problem with simply shifting weight upstream to compensate for this: the gains are countered by losses in other genomic regions, and related starts from upstream-only or proportionally-mixed checkpoints from the parameter scaling sweep did not produce clear net wins.
 
 ![Composite VEP AUPRC vs upstream mixture proportion](/assets/images/blog/genomic-lm-optimization/figure9_upstream_mix_auprc.svg)
 
 **Figure 9:** Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).
 
-- Upstream task gains are easily undone by performance lost on other tasks.
-  - Similar experiments starting from upstream-only models or proportionally-weighted checkpoints likewise yielded no clear net wins.
-- Conclusion: improving zero-shot performance mid-flight is **not** really possible by re-weighting **existing** mixture components.
-- As an alternative, we instead mix in new, distal sequence data — largely mammalian enhancer sequences — with uniform weighting.
-  - This expands the mixture pool from 3 genomic regions (CDS, upstream, downstream) to 5 (+ ncRNA exons and enhancers).
-  - Surprisingly, this improves upstream task performance significantly (promoter VEP 30% → 40%) and very drastically improves distal task performance (ncRNA exon variants 19% → 65%, enhancer variants 14% → 33%), while mostly holding performance on other tasks fixed.
-  - Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).
-    - This outperforms de novo training on the 5-region mixture.
+A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. This led to significant gains where promoter VEP improves from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly hold. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.
 
 ![VEP AUPRC trajectories by mixture lineage](/assets/images/blog/genomic-lm-optimization/figure10_lineage_vep_trajectory.svg)
 
-**Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages (macro average highlighted, top-left). The dashed line marks where the best recipe (m5.1) shifts from a 3-region to a 5-region mixture — the inflection in the distal and non-coding-exon panels.
+**Figure 10:** VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.
 
-- Conclusion: improving zero-shot performance mid-flight **is** possible by adding **new**, uniformly-weighted mixture components.
+[^upstream-only-issue]: See [Open-Athena/marin-dna issue #55](https://github.com/Open-Athena/marin-dna/issues/55).
 
-## Conclusion
+### Leaderboard scores
 
-- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).
+The result of the previous mixture experiments is the m5.1 model used for the headline comparison. Figure 11 is a snapshot of the Mendelian VEP leaderboard we host at [openathena.ai/marin-dna/leaderboards](https://openathena.ai/marin-dna/leaderboards), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
 
 ![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg)
 
 **Figure 11:** Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.
 
+## Conclusion
+
+- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).
 - This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.
   - Many less successful attempts are not mentioned here but are documented at [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
 - Ongoing work will hopefully yield a more consistent, effective training strategy.

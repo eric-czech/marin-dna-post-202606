@@ -4244,7 +4244,7 @@ z
 </details>
 
 <h3>Parameter scaling</h3>
-<p>Before asking whether better validation loss translates into better VEP performance, we first needed a clean validation-loss scaling curve. The experiment is conceptually plain. Hold the training recipe fixed, vary parameter count, and fit the resulting losses with a Kaplan-style scaling law.<sup class="footnote-ref" id="fnref-15"><a href="#fn-15">15</a></sup> Actually getting there took months between hyperparameter-transfer fitting, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.</p>
+<p>Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).<sup class="footnote-ref" id="fnref-15"><a href="#fn-15">15</a></sup> Despite this being a simple experiment conceptually, actually getting there took months between fitting the hyperparameter transfer heuristic, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 630.98375 353.013453" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Loss scaling across model sizes with Kaplan power-law fits</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -8037,7 +8037,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
-<p>Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially disappointing given the direct relevance of coding amino-acid changes to protein-target drug development.</p>
+<p>Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially discouraging given the direct relevance of coding amino-acid changes to protein-target drug development and the fact that this is our most prevalent class of variants to evaluate on.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 652.881525 244.580625" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>VEP AUPRC training curves by model scale</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -9907,22 +9907,8 @@ z
 </svg>
 <figcaption><strong>Figure 8:</strong> Loss vs VEP AUPRC correlation within model-size ranges.</figcaption></figure>
 <h3>Mixture experiments</h3>
-<ul>
-<li>To further optimize our models, we move away from theoretically-grounded, compute-constrained methods.<ul>
-<li>Instead, we focus on the mixture constituents — epoching them freely — and how far they can be modified in-flight to compensate for observed performance gaps (YOLO).</li>
-</ul>
-</li>
-<li>This still relies on two key results from the parameter-scaling sweep:<ul>
-<li>Hyperparameter-transfer scaling heuristics, to configure runs with very different token horizons.</li>
-<li>A 1B target scale — the largest model that still exhibited high VEP monotonicity.</li>
-</ul>
-</li>
-<li>We begin by training at 1B params on a uniform mixture of the same 3-region animal sequences used previously.<ul>
-<li>By ~50B tokens, this saturated on upstream tasks (promoters and 5' UTRs) at significantly lower levels than models trained on upstream sequence alone.</li>
-<li>We then test shifts in mixture weights to see whether upstream task performance can be improved without sacrificing the others.</li>
-</ul>
-</li>
-</ul>
+<p>At this point we move away from theoretically-grounded, compute-constrained methods. The later experiments still rely on the transfer heuristics above, since we need learning rates and other hyperparameters for runs with very different token horizons, and on the parameter-scaling result that 1B is the largest scale with reasonably useful VEP monotonicity. But the actual optimization problem becomes much more ad hoc -- we start changing mixture constituents, epoch them freely, and see whether in-flight changes can compensate for observed performance gaps.</p>
+<p>The first clear gap we try to correct is in upstream performance. Promoter AUPRC from a model trained on all genomic regions lags one trained on upstream sequence alone by a substantial margin, roughly 20% vs. 33% in an earlier run.<sup class="footnote-ref" id="fnref-16"><a href="#fn-16">16</a></sup> A 1B model trained on a uniform mixture of the same 3-region animal sequences saturates by ~50B tokens on promoters and 5' UTRs, at levels below what upstream-only training can reach. Figure 9 shows the problem with simply shifting weight upstream to compensate for this: the gains are countered by losses in other genomic regions, and related starts from upstream-only or proportionally-mixed checkpoints from the parameter scaling sweep did not produce clear net wins.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 637.34625 205.194531" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Composite VEP AUPRC vs upstream mixture proportion</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -10129,22 +10115,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 9:</strong> Composite VEP AUPRC vs upstream mixture proportion, against the uniform baseline (dotted).</figcaption></figure>
-<ul>
-<li>Upstream task gains are easily undone by performance lost on other tasks.<ul>
-<li>Similar experiments starting from upstream-only models or proportionally-weighted checkpoints likewise yielded no clear net wins.</li>
-</ul>
-</li>
-<li>Conclusion: improving zero-shot performance mid-flight is <strong>not</strong> really possible by re-weighting <strong>existing</strong> mixture components.</li>
-<li>As an alternative, we instead mix in new, distal sequence data — largely mammalian enhancer sequences — with uniform weighting.<ul>
-<li>This expands the mixture pool from 3 genomic regions (CDS, upstream, downstream) to 5 (+ ncRNA exons and enhancers).</li>
-<li>Surprisingly, this improves upstream task performance significantly (promoter VEP 30% → 40%) and very drastically improves distal task performance (ncRNA exon variants 19% → 65%, enhancer variants 14% → 33%), while mostly holding performance on other tasks fixed.</li>
-<li>Our best recipe so far trains on a uniformly-weighted, 3-region mixture of sequence data proximal to genes (~104B tokens), followed by continued pretraining on a uniformly-weighted, 5-region mixture expanded to include distal sequences (~62B tokens).<ul>
-<li>This outperforms de novo training on the 5-region mixture.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+<p>A more productive strategy is to mix in new sequence types from species with less evolutionary divergence from humans, i.e. mammals rather than all animals. We expand the pool from CDS, upstream, and downstream sequence to a 5-region mixture with ncRNA exons and mostly mammalian enhancer sequence, then return to uniform weighting. This led to significant gains where promoter VEP improves from roughly 30% to 40%, ncRNA exon variants from 19% to 65%, and enhancer-like distal variants from 14% to 33%, while the other tasks mostly hold. The best recipe trains on a uniformly-weighted 3-region mixture for ~104B tokens, then continues on the uniformly-weighted 5-region mixture for ~62B tokens (Figure 10). Importantly, this is a substantial improvement over de novo training on the 5-region mixture and indicates that order of exposure seems to matter. So mid-flight improvement is possible in the end, but in this sweep it comes from adding new, uniformly-weighted mixture components rather than reweighting the old ones.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 630.995469 507.74665" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>VEP AUPRC trajectories by mixture lineage</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -15226,14 +15197,9 @@ z
   </clipPath>
  </defs>
 </svg>
-<figcaption><strong>Figure 10:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages (macro average highlighted, top-left). The dashed line marks where the best recipe (m5.1) shifts from a 3-region to a 5-region mixture — the inflection in the distal and non-coding-exon panels.</figcaption></figure>
-<ul>
-<li>Conclusion: improving zero-shot performance mid-flight <strong>is</strong> possible by adding <strong>new</strong>, uniformly-weighted mixture components.</li>
-</ul>
-<h2>Conclusion</h2>
-<ul>
-<li>Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).</li>
-</ul>
+<figcaption><strong>Figure 10:</strong> VEP AUPRC trajectories vs training tokens for three model-mixture lineages. The best model in this post is m5.1, shown in red, which shifts from a 3-region to a 5-region mixture at the dashed line. The macro average is highlighted in the top-left panel, and the distal and non-coding-exon panels show the clearest inflection after the mixture shift.</figcaption></figure>
+<h3>Leaderboard scores</h3>
+<p>The result of the previous mixture experiments is the m5.1 model used for the headline comparison. Figure 11 is a snapshot of the Mendelian VEP leaderboard we host at <a href="https://openathena.ai/marin-dna/leaderboards">openathena.ai/marin-dna/leaderboards</a>, where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 525.224371 226.87308" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Mendelian VEP benchmark AUPRC heatmap across models</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -15761,7 +15727,9 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 11:</strong> Mendelian VEP benchmark — AUPRC (%) across models, with the Macro Avg column highlighted.</figcaption></figure>
+<h2>Conclusion</h2>
 <ul>
+<li>Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T) and ~0.05% as many FLOPs (1.1e21 vs 2.25e24).</li>
 <li>This model resulted from a messy, ad-hoc process aided in unanticipated ways by the hyperparameter-transfer, scaling, and mixture tools within Marin.<ul>
 <li>Many less successful attempts are not mentioned here but are documented at <a href="https://github.com/Open-Athena/marin-dna">Open-Athena/marin-dna</a>.</li>
 </ul>
@@ -15785,6 +15753,7 @@ z
 <li id="fn-13"><p>The proportional mix used here spans CDS, upstream, and downstream regions, with ~331M training examples and ~85B tokens from 366,411 RefSeq accessions across ~500 animal species. Each region is cycled only once, which keeps the transfer validation from being tangled up with epoching effects.<a href="#fnref-13" class="footnote">&#8617;</a></p></li>
 <li id="fn-14"><p>Complete(d) refers to the compute-constrained hyperparameter-transfer framework described in <a href="https://arxiv.org/abs/2512.22382">Complete(d): Data-Optimizing Hyperparameter Transfer</a>.<a href="#fnref-14" class="footnote">&#8617;</a></p></li>
 <li id="fn-15"><p>This follows the empirical scaling-law setup from <a href="https://arxiv.org/abs/2001.08361">Kaplan et al.</a>, where model loss is fit as a predictable function of model size, data, and compute.<a href="#fnref-15" class="footnote">&#8617;</a></p></li>
+<li id="fn-16"><p>See <a href="https://github.com/Open-Athena/marin-dna/issues/55">Open-Athena/marin-dna issue #55</a>.<a href="#fnref-16" class="footnote">&#8617;</a></p></li>
 </ol>
 </section>
 
