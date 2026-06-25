@@ -152,19 +152,33 @@ def expand_plotly_shortcodes(text: str, slug: str) -> tuple[str, bool]:
     return text, found
 
 
+def _format_author(name: str) -> tuple[str, str]:
+    """Return ``(surname, "Last, First")`` for one "First ... Last" name."""
+    parts = name.split()
+    if not parts:
+        return "anon", "anon"
+    last = parts[-1]
+    first = " ".join(parts[:-1])
+    return last, (f"{last}, {first}" if first else last)
+
+
 def generate_bibtex(meta: dict, site_url: str) -> str:
     """Build a BibTeX @misc entry for a blog post from its frontmatter."""
     author = str(meta.get("author", "")).strip()
-    parts = author.split()
-    last = parts[-1] if parts else "anon"
-    first = " ".join(parts[:-1])
-    author_fmt = f"{last}, {first}" if first else last
+    # Split a possibly multi-author field ("A & B", "A and B") into individual
+    # names so each is rendered as "Last, First" and joined with BibTeX's
+    # author separator " and " (rather than flipping the whole string as if it
+    # were one name).
+    names = [n.strip() for n in re.split(r"\s*(?:&|\band\b)\s*", author) if n.strip()]
+    formatted = [_format_author(n) for n in names] or [("anon", "anon")]
+    first_surname = formatted[0][0]
+    author_fmt = " and ".join(fmt for _, fmt in formatted)
     date = meta["date"]
     year = date.year
     month = date.strftime("%b").lower()
     slug = meta.get("slug", "")
     title = meta.get("title", "")
-    key = f"{last.lower()}{year}_{slug.replace('-', '_')}"
+    key = f"{first_surname.lower()}{year}_{slug.replace('-', '_')}"
     url = f"{site_url.rstrip('/')}/blog/{slug}/"
     return (
         f"@misc{{{key},\n"
