@@ -123,7 +123,7 @@ That validation is a fairly unforgiving test. If the transferred learning rate w
 
 ### Parameter scaling
 
-Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months between fitting the hyperparameter transfer heuristic, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep.
+Before asking whether better validation loss translates into better VEP performance, we first needed to check whether validation loss scaled the way it should. The parameter sweep uses the same training recipe at each model size, with all hyperparameters set by the transfer heuristic above, and then asks whether the resulting losses fit a Kaplan-style scaling law well (they do).[^kaplan-scaling] Despite this being a simple experiment conceptually, actually getting there took months between fitting the hyperparameter transfer heuristic, validation runs, and the 4B model alone taking about three weeks to finish. The final sweep spans 8 model sizes from 46M to 4B parameters, each trained on ~84B tokens, for ~4.3e21 FLOPs across the sweep. That puts it on par with canonical scaling-law studies in language modeling, e.g. its ~2.1e21 FLOP 4B run matches the compute Hugging Face used at that exact model scale in their data-constrained scaling work.[^muennighoff]
 
 ![Loss scaling across model sizes with Kaplan power-law fits](/assets/images/blog/genomic-lm-optimization/figure4_loss_scaling.svg)
 
@@ -132,6 +132,8 @@ Before asking whether better validation loss translates into better VEP performa
 The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
+
+[^muennighoff]: Figure 4 of [Muennighoff et al.](https://arxiv.org/abs/2305.16264), "Scaling Data-Constrained Language Models" (NeurIPS 2023).
 
 ### Downstream performance
 
