@@ -8,7 +8,7 @@ math: false
 toc: true
 tags:
   - Marin
-summary: "How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs, via hyperparameter transfer, scaling laws, and training-mixture experiments."
+summary: "How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs, via hyperparameter transfer, scaling laws, and data-mixture experiments."
 ---
 
 <style>
@@ -48,7 +48,7 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 }
 </style>
 
-How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers hyperparameter transfer, scaling-law, and training-mixture experiments.
+How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers DNA hyperparameter transfer, scaling-law, and data-mixture experiments.
 
 ## Introduction
 
@@ -98,7 +98,7 @@ The conserved metazoan DNA pool we can plausibly train on is only O(100B) tokens
 
 ![Learning-rate transfer across model scales](/assets/images/blog/genomic-lm-optimization/figure1_lr_transfer.svg)
 
-**Figure 1:** Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales.
+**Figure 1:** Learning-rate (LR) transfer across the 255M, 476M, and 1B validation scales. The `control` run type indicates final loss from the optimal configuration found in the initial smaller-scale reference sweep. The predicted, optimal LR results in a better loss than both this control and all other configurations at the same scale (`sweep` run type), for all model sizes.
 
 We started with hyperparameter transfer for that reason. If a proven data-constrained transfer framework existed, we would use it. We do not know of one, so we followed the same basic pattern as [Delphi](https://openathena.ai/blog/delphi/), fitting a small reference sweep with the Vizier Bayesian optimization framework and then scaling the result using Complete(d).[^completed-framework] The reference sweep used ~25M-parameter models trained for 2.5B tokens with a 16k-token batch, or roughly 4e17 FLOPs per run. We then validated the transferred hyperparameters from 255M to 1B parameters, with 4x as many tokens, 1/4x the batch size, and roughly 170x the FLOPs per run. The less sensitive optimizer hyperparameters are shown separately in Figure 2.
 
@@ -179,7 +179,7 @@ A more productive strategy is to mix in new sequence types from species with les
 
 ### Leaderboard scores
 
-The result of the previous mixture experiments is the m5.1 model used for the headline comparison. Figure 11 is a snapshot of the Mendelian VEP leaderboard we host at [openathena.ai/marin-dna/leaderboards](https://openathena.ai/marin-dna/leaderboards), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
+The result of the previous mixture experiments is the m5.1 model used for the headline comparison. Figure 11 is a snapshot of the Mendelian VEP leaderboard we host at [openathena.ai/marin-dna/leaderboards/mendelian](https://openathena.ai/marin-dna/leaderboards/mendelian), where we are continuing to add new experimental runs and baselines. In this snapshot, m5.1 is again just a 1B GPT-style model, but it comes out slightly ahead of Evo 2 40B on average across all variant classes.
 
 ![Mendelian VEP benchmark AUPRC heatmap across models](/assets/images/blog/genomic-lm-optimization/figure11_leaderboard_heatmap.svg)
 
@@ -187,8 +187,8 @@ The result of the previous mixture experiments is the m5.1 model used for the he
 
 ## Conclusion
 
-A fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a significant contribution to the field. The experiments above show how to check most of those boxes with a standard GPT-style model, although easy replication is still a work in progress. The final recipe did not come from a clean, linear optimization process. It came from a messy set of ad hoc experiments that were made much more useful by the hyperparameter-transfer, scaling, and mixture tools inside Marin. Many less successful attempts are not discussed here, but they are documented in [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
+A fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a significant contribution to the field. The experiments above show how to check most of those boxes with a standard GPT-style model, though "easy-to-replicate" is still a work in progress. Many less successful attempts are not discussed here and are documented in [Open-Athena/marin-dna](https://github.com/Open-Athena/marin-dna).
 
-There are also several important gaps in the current work. The largest technical omission is regularization, which is an obvious lever for data-constrained modeling. We are still in an awkward regime between data-constrained and compute-constrained training, but now that the recipe is narrower, and with better infrastructure (TODO: link iris post) for using the Google TPU Research Cloud compute donated for these efforts, we expect regularization to matter much more in future runs. Ongoing work should also make the training strategy more consistent and, hopefully, produce further quality gains.
+There are also still important gaps. The largest technical omission is regularization, an obvious lever for data-constrained modeling. We are in an awkward regime between data-constrained and compute-constrained training, though the narrowed recipe and better infrastructure (TODO: link iris post) for using the Google TPU Research Cloud compute donated for these efforts should make that lever much easier to use. The other major gap is attribution. It is not yet clear exactly where the largest gains are coming from; data curation is almost certainly the biggest contributor, and we plan to explain those details separately.
 
-The other major gap is attribution. It is not yet clear exactly where the largest gains are coming from, although data curation is almost certainly the biggest contributor. We have not explained those details here, but we plan to. There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.
+There is plenty of work left to do, but we think these results clearly show the potential value of a general-purpose training platform like Marin for accelerating scientific foundation model development.
