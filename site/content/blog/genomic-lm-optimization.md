@@ -147,13 +147,13 @@ The relationship between validation loss and VEP performance is much less tidy. 
 
 **Figure 6:** Composite VEP AUPRC vs validation loss.
 
-Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially noisy, the 1B model continues to improve on several tasks, and the 4B model gets much of its missense signal early while other tasks continue moving.
+Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially disappointing given the direct relevance of coding amino-acid changes to protein-target drug development.
 
 ![VEP AUPRC training curves by model scale](/assets/images/blog/genomic-lm-optimization/figure7_loss_vs_traitgym_curves.svg)
 
 **Figure 7:** VEP AUPRC training curves by model scale.
 
-The useful finding is not that VEP becomes monotonic everywhere. It is that some model scales have a much stronger monotonic relationship between falling validation loss and improving VEP during training (Figure 8). The mid-sized models are the most reliable by this measure, while the smallest and largest scales are less consistent. That gave us a practical target range for the later experiments where we train beyond one pass through the data.
+Ultimately, the most useful finding is that monotonicity is scale-dependent (Figure 8). Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.
 
 ![Loss vs VEP AUPRC correlation within model-size ranges](/assets/images/blog/genomic-lm-optimization/figure8_loss_vs_traitgym_correlation.svg)
 

@@ -8037,7 +8037,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 6:</strong> Composite VEP AUPRC vs validation loss.</figcaption></figure>
-<p>Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially noisy, the 1B model continues to improve on several tasks, and the 4B model gets much of its missense signal early while other tasks continue moving.</p>
+<p>Token scaling at a fixed model size is not much cleaner. Within individual runs, VEP often improves early and then flattens or degrades, and the shape of that curve changes with model scale (Figure 7). The 128M model is especially prone to degradation, the 1B model continues to improve on several tasks, and the 4B model shows non-monotonic missense gains, which is especially disappointing given the direct relevance of coding amino-acid changes to protein-target drug development.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 652.881525 244.580625" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>VEP AUPRC training curves by model scale</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
@@ -9125,7 +9125,7 @@ z
  </defs>
 </svg>
 <figcaption><strong>Figure 7:</strong> VEP AUPRC training curves by model scale.</figcaption></figure>
-<p>The useful finding is not that VEP becomes monotonic everywhere. It is that some model scales have a much stronger monotonic relationship between falling validation loss and improving VEP during training (Figure 8). The mid-sized models are the most reliable by this measure, while the smallest and largest scales are less consistent. That gave us a practical target range for the later experiments where we train beyond one pass through the data.</p>
+<p>Ultimately, the most useful finding is that monotonicity is scale-dependent (Figure 8). Mid-sized models are the most reliable by this measure, which gave us a practical target range for later experiments that train beyond one pass through the data.</p>
 <figure><svg role="img" class="figure-svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 605.827954 248.240446" xmlns="http://www.w3.org/2000/svg" version="1.1"><title>Loss vs VEP AUPRC correlation within model-size ranges</title>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
