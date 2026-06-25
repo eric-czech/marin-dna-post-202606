@@ -129,7 +129,7 @@ Before asking whether better validation loss translates into better VEP performa
 
 **Figure 4:** Loss scaling across 8 model sizes (46M–4B params), with Kaplan power-law fit.
 
-The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a nice smooth Kaplan scaling law, which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
+The result is about as tidy as we could hope for. Training is stable at every scale, and both training and validation loss decrease monotonically and predictably (Figure 4). We use WSD learning-rate schedules with 10% warmup and 20% decay, which causes the visible drop in both losses over the final 20% of tokens. That cooldown behavior matching what we expect from text models is also somewhat noteworthy. More importantly, the sweep gives a high quality Kaplan scaling law fit (R<sup>2</sup>=0.999), which makes the next question much better posed. Does lower validation loss actually correlate with better downstream VEP performance?
 
 [^kaplan-scaling]: This follows the empirical scaling-law setup from [Kaplan et al.](https://arxiv.org/abs/2001.08361), where model loss is fit as a predictable function of model size, data, and compute.
 
