@@ -48,8 +48,6 @@ summary: "How Marin can be used to train single-sequence, vanilla Transformer gL
 }
 </style>
 
-*Draft — prose is intentionally skeletal pending a full write-up.*
-
 How Marin can be used to train single-sequence, vanilla Transformer gLMs comparable to Evo 2 40B with ~1,980× fewer FLOPs. Covers hyperparameter transfer, scaling-law, and training-mixture experiments.
 
 ## Introduction
