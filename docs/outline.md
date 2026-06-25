@@ -102,14 +102,14 @@ Description: How Marin can be used to train single-sequence, vanilla Transformer
 
 ## Conclusion
 
-- Our net result is a PoC for a 1B model on par with Evo 2 40B after training on just 1.8% as many tokens (166B vs 9.3T), ~0.05% as many FLOPs (1.1e21 vs 2.25e24) and X% greater inference throughput
-  - TODO: again, need those throughput numbers
-  - Show `figure11_leaderboard_heatmap`
 - We believe a fast, high-quality, easy-to-replicate gLM for human variant prioritization, with few restrictions on genomic context, would be a signifcant contribution to the field
   - We show here how to check most of these boxes; however, "easy-to-replicate" is still a work in progress
   - This model resulted from a messy, ad-hoc process aided in unanticipated ways by hyperparameter transfer, scaling and mixture tools within Marin
   - Many less successful attempts are not mentioned here but documented in https://github.com/Open-Athena/marin-dna
 - Ongoing work will hopefully yield a more consistent, effective training strategy and even greater quality gains
-- Regularization is giant gap in this research, but that is difficult to tune without scaling heuristics or more compute
-  - Having narrowed the recipe now, this is more feasible in the future
-- TODO: mention this as an important demonstration of Marin for SciFMs
+- There are several notable gaps or limitations in this research:
+  - Regularization is entirely missing and that is a very important lever for data-constrained modeling 
+    - Again we are straddling data-constrained and compute-constrained regimes, but having narrowed the recipe now and with more effective infrastructure (TODO: link iris post) to better utilize the computing resources generously donated for these efforts by Google TPU Research Cloud, we believe we're likely to use this lever to significant effect in the future
+  - It's not clear where exactly we're getting the most lift yet, but data curation is almost certainly the greatest contributor
+    - We have not explained the details of this yet but plan to
+- We have plenty of work left to do, but we think these results demonstrate the potential power that a general-purpose training platform like Marin can have for accelerating scientific foundation model development

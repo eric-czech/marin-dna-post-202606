@@ -43,6 +43,13 @@ PARAM_CMAP = LinearSegmentedColormap.from_list(
     "earth", ["#23403f", "#3f6b5e", "#7e8a45", "#b3823f", "#9c4f2f"]
 )
 
+# Color the param palette assigns to the largest model (the 4B scale) — the rust
+# end of the ramp. palette() always maps the top scale to cmap(0.85)
+# (0.15 + 0.7·(n-1)/(n-1)) regardless of model count, so this is the exact 4B
+# color seen in the scaling figures. Reused by single-series figures (8, 9) that
+# want to read as "the big model" without rebuilding the full palette.
+LARGEST_MODEL_COLOR = PARAM_CMAP(0.85)
+
 # Warm single-hue sequential (cream -> espresso) for magnitude heatmaps — same
 # family as PARAM_CMAP so the figure set stays visually consistent.
 HEATMAP_CMAP = LinearSegmentedColormap.from_list(

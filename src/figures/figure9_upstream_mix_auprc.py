@@ -15,8 +15,7 @@ import pandas as pd
 
 from figures import mixture_lineage as ml
 from figures.data import save
-from utils.figure_style import FIGURE_WIDTH, X_LABEL_PAD, figsize
-from utils.figure_theme import INK
+from utils.figure_style import FIGURE_WIDTH, LARGEST_MODEL_COLOR, X_LABEL_PAD, figsize
 
 # The uniform→upstream sweep (the ⅓-mix 1.6·M and 1.7·L are omitted).
 UPSTREAM_SWEEP = (
@@ -52,8 +51,9 @@ def build(df: pd.DataFrame) -> None:
     )
     ax.plot(
         xs, ys,
-        color=INK, lw=1.8, marker="o", markersize=8,
-        markerfacecolor=INK, markeredgecolor=INK, markeredgewidth=0.5, zorder=3,
+        color=LARGEST_MODEL_COLOR, lw=1.8, marker="o", markersize=8,
+        markerfacecolor=LARGEST_MODEL_COLOR, markeredgecolor=LARGEST_MODEL_COLOR,
+        markeredgewidth=0.5, zorder=3,
     )
     ax.set_xlabel("upstream proportion in continuation mix", labelpad=X_LABEL_PAD)
     ax.set_ylabel("macro avg VEP AUPRC")

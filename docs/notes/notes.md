@@ -20,11 +20,17 @@ largely invariant to N"
 
 ## TODO
 
-- Compare predicted hypers at 1e23 scale to text models at that scale
-- Create a table containing best hypers by FLOP and token count as a guideline for others 
+- Primary
+  - Refactor "That cooldown behavior matching what we expect from text models is also somewhat noteworthy"
+    - Include results from cooldown analysis
+  - Sweep stats: FLOPS and wall clock time
+    - Use figure 4 of https://arxiv.org/abs/2305.16264 w/ 4.2B param 85B token training (very similar to scale here) as reference point on how large these experiments are
+  - Get throughput numbers
+  - Mention loss masking
+- Secondary
+  - Compare predicted hypers at 1e23 scale to text models at that scale
+  - Create a table containing best hypers by FLOP and token count as a guideline for others 
     - Start with this to make it clear that transfer is a function of tokens
-- Sweep stats: FLOPS and wall clock time
-    - Use figure 4 of https://arxiv.org/pdf/2305.16264 w/ 4.2B param 85B token training (very similar to scale here) as reference point on how large these experiments are
 
 ## Stats
 
