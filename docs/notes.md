@@ -1,3 +1,15 @@
+## TODO
+
+- Primary
+  - Change title to "Outperforming Evo 2 40B with Marin"
+  - Get throughput numbers
+  - Add example of inference code showing how easy it is in "Why GPT-style?"
+- Secondary
+  - Mention loss masking
+  - Compare predicted hypers at 1e23 scale to text models at that scale
+  - Create a table containing best hypers by FLOP and token count as a guideline for others 
+    - Start with this to make it clear that transfer is a function of tokens
+    
 ## Misc
 
 - The large majority (~80%) of compute resources required to train a modern LLM result from experimentation, not final models [https://arxiv.org/abs/2605.01158]
@@ -17,20 +29,6 @@ largely invariant to N"
   - https://arxiv.org/pdf/2604.22753
   - "Scaling laws are used to plan multi-million-dollar training runs, but fitting those laws can itself cost millions"
   - "At industrial scale, the pilot runs needed just to fit a scaling law can themselves consume a massive budget (Porian et al., 2025; Hagele et al., 2024)"
-
-## TODO
-
-- Primary
-  - Refactor "That cooldown behavior matching what we expect from text models is also somewhat noteworthy"
-    - Include results from cooldown analysis
-  - Sweep stats: FLOPS and wall clock time
-    - Use figure 4 of https://arxiv.org/abs/2305.16264 w/ 4.2B param 85B token training (very similar to scale here) as reference point on how large these experiments are
-  - Get throughput numbers
-  - Mention loss masking
-- Secondary
-  - Compare predicted hypers at 1e23 scale to text models at that scale
-  - Create a table containing best hypers by FLOP and token count as a guideline for others 
-    - Start with this to make it clear that transfer is a function of tokens
 
 ## Stats
 
